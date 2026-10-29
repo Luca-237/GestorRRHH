@@ -1,0 +1,5 @@
+# Configuración mínima para la CLI de Supabase (solo si se despliega con la CLI).
+# La función exige un usuario logueado: el gateway de Supabase valida el token
+# antes de que llegue al código, y el código verifica además que sea admin.
+[functions.admin-usuarios]
+verify_jwt = true

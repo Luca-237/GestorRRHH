@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Gestor de RRHH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Lora:ital,wght@0,600;1,500&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23e84e1b'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css?v=20261029.1">
+</head>
+<body>
+
+<!-- ============ Falta configurar la conexión ============ -->
+<section class="pantalla" id="pantalla-config" hidden>
+  <div class="tarjeta">
+    <header class="marca">
+      <span class="isotipo" aria-hidden="true">C</span>
+      <span><span class="titulo">Gestor de RRHH</span><span class="sub">Cindy Mayorista · Personal</span></span>
+    </header>
+    <p><strong>Falta conectar la base de datos.</strong></p>
+    <p>Completá <code>supabaseUrl</code> y <code>supabaseKey</code> en <code>js/config.js</code> y recargá la página.</p>
+    <p>El paso a paso está en <code>SUPABASE-SETUP.md</code>.</p>
+  </div>
+</section>
+
+<!-- ============ Cargando ============ -->
+<section class="pantalla" id="pantalla-carga">
+  <p class="cargando">Cargando…</p>
+</section>
+
+<!-- ============ Login ============ -->
+<section class="pantalla" id="pantalla-login" hidden>
+  <form class="tarjeta" id="form-login" autocomplete="on">
+    <header class="marca">
+      <span class="isotipo" aria-hidden="true">C</span>
+      <span><span class="titulo">Gestor de RRHH</span><span class="sub">Cindy Mayorista · Personal</span></span>
+    </header>
+    <label for="login-email">Usuario</label>
+    <input id="login-email" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+    <label for="login-password">Contraseña</label>
+    <input id="login-password" type="password" autocomplete="current-password" required>
+    <button class="btn" id="login-btn" type="submit">Ingresar</button>
+    <div class="mensaje-error" id="login-error" role="alert"></div>
+  </form>
+</section>
+
+<!-- ============ Aplicación ============ -->
+<div class="app" id="app" hidden>
+  <header class="barra">
+    <button type="button" class="btn-menu" id="btn-menu" aria-label="Abrir menú">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+    </button>
+    <div class="marca">
+      <span class="isotipo" aria-hidden="true">C</span>
+      <span><span class="titulo">Gestor de RRHH</span><span class="sub">Cindy Mayorista · Personal</span></span>
+    </div>
+    <div class="filtro-sucursal" id="filtro-sucursal-wrap" data-solo-admin hidden>
+      <label for="filtro-sucursal">Sucursal</label>
+      <select id="filtro-sucursal"></select>
+    </div>
+    <div class="sucursal-fija" id="sucursal-fija" hidden></div>
+    <div class="usuario">
+      <span class="quien"><span id="usuario-nombre"></span><span class="rol" id="usuario-rol"></span></span>
+      <button type="button" class="link" id="salir">Salir</button>
+    </div>
+  </header>
+
+  <nav class="lateral" id="lateral" aria-label="Secciones">
+    <a href="#tablero" data-vista="tablero">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+      Tablero</a>
+    <a href="#empleados" data-vista="empleados">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Empleados</a>
+    <a href="#novedades" data-vista="novedades">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h5"/><path d="M17.5 17.5 16 16.3V14"/><circle cx="16" cy="16" r="6"/></svg>
+      Novedades</a>
+    <a href="#vacaciones" data-vista="vacaciones">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+      Vacaciones</a>
+    <a href="#evaluaciones" data-vista="evaluaciones">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+      Evaluaciones</a>
+    <a href="#horas" data-vista="horas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Cuenta de horas</a>
+    <a href="#configuracion" data-vista="configuracion" data-solo-admin hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>
+      Configuración</a>
+  </nav>
+
+  <main class="contenido">
+    <!-- ======== Tablero ======== -->
+    <section id="vista-tablero" data-seccion>
+      <div class="vista-head">
+        <div><h1>Tablero</h1><p class="sub" id="tablero-sub"></p></div>
+        <div class="controles">
+          <div><label for="tablero-mes">Mes</label><input type="month" id="tablero-mes"></div>
+          <button type="button" class="btn-sec primario" data-nueva-novedad>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            Cargar novedad</button>
+        </div>
+      </div>
+      <div class="kpis" id="tablero-kpis"></div>
+      <div class="columnas" style="margin-bottom:18px">
+        <div class="caja"><h2>Hoy no están<span class="info" tabindex="0" role="img" aria-label="Empleados que hoy tienen cargada una ausencia: vacaciones, franco, licencia médica, falta o licencia especial. Al lado, las fechas de esa ausencia." data-info="Empleados que hoy tienen cargada una ausencia: vacaciones, franco, licencia médica, falta o licencia especial. Al lado, las fechas de esa ausencia."></span></h2><ul class="lista-simple" id="tablero-hoy"></ul></div>
+        <div class="caja"><h2>Próximas ausencias · 30 días<span class="info" tabindex="0" role="img" aria-label="Vacaciones, francos, licencias y faltas ya cargadas que empiezan en los próximos 30 días. Sirve para prever quién no va a estar." data-info="Vacaciones, francos, licencias y faltas ya cargadas que empiezan en los próximos 30 días. Sirve para prever quién no va a estar."></span></h2><ul class="lista-simple" id="tablero-proximas"></ul></div>
+      </div>
+      <div class="caja" id="tablero-sucursales-caja" hidden>
+        <h2>Por sucursal · mes elegido</h2>
+        <div class="tabla-wrap"><table class="tabla grilla" id="tablero-sucursales"></table></div>
+      </div>
+      <div class="caja">
+        <h2>Resumen por empleado · mes elegido</h2>
+        <div class="tabla-wrap"><table class="tabla grilla con-nombre" id="tablero-empleados"></table></div>
+        <p class="hint">Hacé clic en un empleado para ver su ficha completa. En rojo: 3 o más llegadas tarde en el mes, o vacaciones con saldo negativo.</p>
+      </div>
+    </section>
+
+    <!-- ======== Empleados ======== -->
+    <section id="vista-empleados" data-seccion hidden>
+      <div class="vista-head">
+        <div><h1>Empleados</h1><p class="sub" id="empleados-sub"></p></div>
+        <div class="controles">
+          <button type="button" class="btn-sec primario" id="nuevo-empleado" data-solo-admin hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            Nuevo empleado</button>
+        </div>
+      </div>
+      <div class="caja">
+        <div class="filtros">
+          <div style="flex:1; min-width:220px"><label for="empleados-buscar">Buscar</label>
+            <div class="buscar-wrap">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input id="empleados-buscar" placeholder="Apellido, nombre, DNI o puesto">
+            </div>
+          </div>
+          <div><label for="empleados-estado">Estado</label>
+            <select id="empleados-estado"><option value="activos">Activos</option><option value="inactivos">Dados de baja</option><option value="todos">Todos</option></select>
+          </div>
+        </div>
+        <div class="tabla-wrap"><table class="tabla grilla con-nombre" id="tabla-empleados"></table></div>
+      </div>
+    </section>
+
+    <!-- ======== Novedades ======== -->
+    <section id="vista-novedades" data-seccion hidden>
+      <div class="vista-head">
+        <div><h1>Novedades</h1><p class="sub">Vacaciones, francos, llegadas tarde, horas extra y licencias.</p></div>
+        <div class="controles">
+          <button type="button" class="btn-sec" id="exportar-novedades">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Exportar para liquidación</button><span class="info" tabindex="0" role="img" aria-label="Descarga un archivo para Excel con una fila por empleado y los totales del mes elegido (llegadas tarde, horas extra al 50% y 100%, días de cada licencia y observaciones), listo para mandar al estudio contable." data-info="Descarga un archivo para Excel con una fila por empleado y los totales del mes elegido (llegadas tarde, horas extra al 50% y 100%, días de cada licencia y observaciones), listo para mandar al estudio contable."></span>
+          <button type="button" class="btn-sec primario" data-nueva-novedad>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            Cargar novedad</button>
+        </div>
+      </div>
+      <div class="caja">
+        <div class="filtros">
+          <div><label for="novedades-mes">Mes</label><input type="month" id="novedades-mes"></div>
+          <div><label for="novedades-tipo">Tipo</label><select id="novedades-tipo"></select></div>
+          <div style="flex:1; min-width:200px"><label for="novedades-empleado">Empleado</label><select id="novedades-empleado"></select></div>
+        </div>
+        <div class="tabla-wrap"><table class="tabla grilla" id="tabla-novedades"></table></div>
+      </div>
+    </section>
+
+    <!-- ======== Vacaciones ======== -->
+    <section id="vista-vacaciones" data-seccion hidden>
+      <div class="vista-head">
+        <div><h1>Vacaciones</h1><p class="sub">Días que corresponden por antigüedad (Ley de Contrato de Trabajo, art. 150), tomados y saldo.</p></div>
+        <div class="controles">
+          <div><label for="vacaciones-anio">Período<span class="info" tabindex="0" role="img" aria-label="Período vacacional: las vacaciones de un año se toman entre el 1 de octubre de ese año y el 30 de abril del siguiente (Ley de Contrato de Trabajo)." data-info="Período vacacional: las vacaciones de un año se toman entre el 1 de octubre de ese año y el 30 de abril del siguiente (Ley de Contrato de Trabajo)."></span></label><select id="vacaciones-anio"></select></div>
+        </div>
+      </div>
+      <div class="caja">
+        <div class="tabla-wrap"><table class="tabla grilla con-nombre" id="tabla-vacaciones"></table></div>
+        <p class="hint">Antigüedad al 31/12 del período: hasta 5 años, 14 días · 5 a 10, 21 · 10 a 20, 28 · más de 20, 35. Con menos de 6 meses trabajados en el año, 1 día cada 20 trabajados (aproximado). Los días son corridos. Las vacaciones tomadas de enero a abril se descuentan del período anterior. Para días arrastrados o acuerdos, usá "Ajuste".</p>
+      </div>
+    </section>
+
+    <!-- ======== Evaluaciones ======== -->
+    <section id="vista-evaluaciones" data-seccion hidden>
+      <div class="vista-head">
+        <div><h1>Evaluaciones</h1><p class="sub">Desempeño de cada empleado, del 1 al 5 por criterio.</p></div>
+        <div class="controles">
+          <button type="button" class="btn-sec primario" id="nueva-evaluacion">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            Nueva evaluación</button>
+        </div>
+      </div>
+      <div class="caja">
+        <h2>Última evaluación de cada empleado</h2>
+        <div class="tabla-wrap"><table class="tabla grilla con-nombre" id="tabla-evaluaciones-resumen"></table></div>
+      </div>
+      <div class="caja">
+        <h2>Historial</h2>
+        <div class="tabla-wrap"><table class="tabla grilla" id="tabla-evaluaciones"></table></div>
+      </div>
+    </section>
+
+    <!-- ======== Cuenta de horas ======== -->
+    <section id="vista-horas" data-seccion hidden>
+      <div class="vista-head">
+        <div><h1>Cuenta de horas</h1><p class="sub" id="horas-sub"></p></div>
+        <div class="controles">
+          <button type="button" class="btn-sec" id="horas-devolucion">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+            Registrar devolución</button>
+          <button type="button" class="btn-sec primario" id="horas-deuda">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            Registrar horas a devolver</button>
+        </div>
+      </div>
+      <div class="kpis" id="horas-kpis"></div>
+      <div class="caja">
+        <h2>Saldo por empleado<span class="info" tabindex="0" role="img" aria-label="Como una cuenta corriente: los permisos y días pedidos suman horas a la deuda; las devoluciones (horas trabajadas de más para compensar) las descuentan. Saldo positivo: el empleado debe horas. Negativo: tiene horas a favor." data-info="Como una cuenta corriente: los permisos y días pedidos suman horas a la deuda; las devoluciones (horas trabajadas de más para compensar) las descuentan. Saldo positivo: el empleado debe horas. Negativo: tiene horas a favor."></span></h2>
+        <div class="filtros"><label class="check" style="margin:0"><input type="checkbox" id="horas-solo-deben" checked> Mostrar solo los que tienen saldo distinto de cero</label></div>
+        <div class="tabla-wrap"><table class="tabla grilla con-nombre" id="tabla-horas"></table></div>
+      </div>
+      <div class="caja">
+        <h2>Movimientos<span class="info" tabindex="0" role="img" aria-label="Cada permiso, día pedido o devolución cargado, del más nuevo al más viejo. Hacé clic en uno para corregirlo o eliminarlo." data-info="Cada permiso, día pedido o devolución cargado, del más nuevo al más viejo. Hacé clic en uno para corregirlo o eliminarlo."></span></h2>
+        <div class="tabla-wrap"><table class="tabla grilla" id="tabla-horas-movimientos"></table></div>
+      </div>
+    </section>
+
+    <!-- ======== Configuración (solo admin) ======== -->
+    <section id="vista-configuracion" data-seccion hidden>
+      <div class="vista-head"><div><h1>Configuración</h1><p class="sub">Usuarios, sucursales, puestos, tipos de novedad y criterios de evaluación.</p></div></div>
+
+      <div class="caja">
+        <h2>Usuarios</h2>
+        <div class="tabla-wrap"><table class="tabla"><thead><tr><th>Usuario</th><th>Rol y sucursal<span class="info" tabindex="0" role="img" aria-label="Admin: ve y carga todo, en todas las sucursales, y administra usuarios. Encargado: ve y carga novedades y evaluaciones solo de su sucursal, y no puede editar empleados." data-info="Admin: ve y carga todo, en todas las sucursales, y administra usuarios. Encargado: ve y carga novedades y evaluaciones solo de su sucursal, y no puede editar empleados."></span></th><th>Estado</th><th></th></tr></thead><tbody id="tabla-usuarios"></tbody></table></div>
+        <form class="form-grid" id="form-usuario" autocomplete="off" style="margin-top:12px; padding:12px; background:var(--fondo); border-radius:3px">
+          <div class="full"><strong style="font-size:14px">Nuevo usuario</strong></div>
+          <div><label for="nu-nombre">Nombre</label><input id="nu-nombre" required></div>
+          <div><label for="nu-email">Usuario (o email)</label><input id="nu-email" type="text" autocapitalize="off" spellcheck="false" required placeholder="ej: antonella"></div>
+          <div><label for="nu-password">Contraseña inicial</label><input id="nu-password" type="text" minlength="8" required autocomplete="new-password"></div>
+          <div><label for="nu-rol">Rol<span class="info" tabindex="0" role="img" aria-label="Admin: ve y carga todo, en todas las sucursales, y administra usuarios. Encargado: ve y carga novedades y evaluaciones solo de su sucursal, y no puede editar empleados." data-info="Admin: ve y carga todo, en todas las sucursales, y administra usuarios. Encargado: ve y carga novedades y evaluaciones solo de su sucursal, y no puede editar empleados."></span></label>
+            <select id="nu-rol">
+              <option value="encargado">Encargado (solo su sucursal)</option>
+              <option value="admin">Admin (todo, administra usuarios)</option>
+            </select>
+          </div>
+          <div><label for="nu-sucursal">Sucursal</label><select id="nu-sucursal"></select></div>
+          <div class="full"><button class="btn" id="nu-crear" type="submit" style="margin-top:12px">Crear usuario</button></div>
+          <div class="full mensaje-error" id="usuario-error" role="alert"></div>
+        </form>
+      </div>
+
+      <div class="columnas">
+        <div class="caja">
+          <h2>Sucursales</h2>
+          <div class="tabla-wrap"><table class="tabla" id="tabla-sucursales"></table></div>
+          <form class="filtros" id="form-sucursal" style="margin:12px 0 0">
+            <div style="flex:1"><label for="ns-nombre">Nueva sucursal</label><input id="ns-nombre" required></div>
+            <button class="btn-sec" type="submit">Agregar</button>
+          </form>
+        </div>
+        <div class="caja">
+          <h2>Puestos</h2>
+          <div class="tabla-wrap"><table class="tabla" id="tabla-puestos"></table></div>
+          <form class="filtros" id="form-puesto" style="margin:12px 0 0">
+            <div style="flex:1"><label for="np-nombre">Nuevo puesto</label><input id="np-nombre" required placeholder="ej: Cajero B"></div>
+            <button class="btn-sec" type="submit">Agregar</button>
+          </form>
+          <p class="hint">Al renombrar un puesto se actualiza en todos los empleados que lo tienen. Los puestos no se borran: se desactivan y dejan de ofrecerse.</p>
+        </div>
+      </div>
+
+      <div class="caja" style="margin-top:18px">
+        <h2>Criterios de evaluación</h2>
+        <div class="tabla-wrap"><table class="tabla" id="tabla-criterios"></table></div>
+        <form class="filtros" id="form-criterio" style="margin:12px 0 0">
+          <div style="flex:1"><label for="nc-nombre">Nuevo criterio</label><input id="nc-nombre" required></div>
+          <button class="btn-sec" type="submit">Agregar</button>
+        </form>
+      </div>
+
+      <div class="caja" style="margin-top:18px">
+        <h2>Tipos de novedad</h2>
+        <div class="tabla-wrap"><table class="tabla" id="tabla-tipos"></table></div>
+        <form class="filtros" id="form-tipo" style="margin:12px 0 0">
+          <div style="flex:1; min-width:200px"><label for="nt-nombre">Nuevo tipo</label><input id="nt-nombre" required placeholder="ej: Licencia por examen"></div>
+          <div><label for="nt-unidad">Se mide en<span class="info" tabindex="0" role="img" aria-label="Días: se carga desde/hasta y se cuentan días corridos. Horas o minutos: se carga una fecha y la cantidad." data-info="Días: se carga desde/hasta y se cuentan días corridos. Horas o minutos: se carga una fecha y la cantidad."></span></label><select id="nt-unidad"><option value="dias">Días</option><option value="horas">Horas</option><option value="minutos">Minutos</option></select></div>
+          <div><label class="check" style="margin:0 0 8px"><input type="checkbox" id="nt-ausencia" checked> Es ausencia</label><span class="info" tabindex="0" role="img" aria-label="Si está marcado, el empleado figura en &quot;Hoy no están&quot; y en &quot;Próximas ausencias&quot; mientras dure la novedad." data-info="Si está marcado, el empleado figura en &quot;Hoy no están&quot; y en &quot;Próximas ausencias&quot; mientras dure la novedad."></span></div>
+          <div><label for="nt-cuenta">Cuenta de horas<span class="info" tabindex="0" role="img" aria-label="Si el tipo suma horas a la deuda del empleado (un permiso a devolver), las descuenta (una devolución) o no toca la cuenta." data-info="Si el tipo suma horas a la deuda del empleado (un permiso a devolver), las descuenta (una devolución) o no toca la cuenta."></span></label>
+            <select id="nt-cuenta"><option value="0">No la toca</option><option value="1">Suma a la deuda</option><option value="-1">Descuenta de la deuda</option></select></div>
+          <button class="btn-sec" type="submit">Agregar</button>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ============ Diálogo: empleado (alta / edición, solo admin) ============ -->
+<dialog class="dlg" id="dlg-empleado">
+  <form method="dialog" id="form-empleado" autocomplete="off">
+    <div class="dlg-head">
+      <h3 id="dlg-empleado-titulo">Nuevo empleado</h3>
+      <button type="button" class="btn-cerrar" data-cerrar aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <div class="dlg-body">
+      <div class="form-grid">
+        <div><label for="em-apellido">Apellido</label><input id="em-apellido" required></div>
+        <div><label for="em-nombre">Nombre</label><input id="em-nombre"></div>
+        <div><label for="em-dni">DNI</label><input id="em-dni" inputmode="numeric"></div>
+        <div><label for="em-cuil">CUIL</label><input id="em-cuil" placeholder="20-12345678-9"></div>
+        <div><label for="em-sucursal">Sucursal</label><select id="em-sucursal" required></select></div>
+        <div><label for="em-puesto">Puesto</label><select id="em-puesto"></select></div>
+        <div><label for="em-jornada">Jornada (horas por día)<span class="info" tabindex="0" role="img" aria-label="Horas de trabajo por día según el contrato. Ej.: 8 para jornada completa, 4 para media jornada." data-info="Horas de trabajo por día según el contrato. Ej.: 8 para jornada completa, 4 para media jornada."></span></label><input id="em-jornada" type="number" min="0" max="24" step="0.5"></div>
+        <div><label for="em-telefono">Teléfono</label><input id="em-telefono" inputmode="tel"></div>
+        <div><label for="em-ingreso">Fecha de ingreso</label><input id="em-ingreso" type="date"></div>
+        <div><label for="em-egreso">Fecha de egreso</label><input id="em-egreso" type="date"></div>
+        <div class="full"><label class="check"><input type="checkbox" id="em-activo" checked> Activo (desmarcar al dar de baja)</label><span class="info" tabindex="0" role="img" aria-label="Al desmarcarlo, el empleado deja de aparecer en el tablero y en las listas, pero se conserva su historial. Si no se carga fecha de egreso, se usa la de hoy." data-info="Al desmarcarlo, el empleado deja de aparecer en el tablero y en las listas, pero se conserva su historial. Si no se carga fecha de egreso, se usa la de hoy."></span></div>
+        <div class="full"><label for="em-notas">Notas</label><textarea id="em-notas"></textarea>
+          <div class="hint">No cargues acá datos de salud (diagnósticos, medicación): solo lo laboral.</div></div>
+      </div>
+      <div class="mensaje-error" id="empleado-error" role="alert"></div>
+      <div class="dlg-pie">
+        <button type="button" class="btn-sec" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn-sec primario" id="em-guardar" value="ok">Guardar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ Diálogo: novedad ============ -->
+<dialog class="dlg" id="dlg-novedad">
+  <form method="dialog" id="form-novedad" autocomplete="off">
+    <div class="dlg-head">
+      <h3 id="dlg-novedad-titulo">Cargar novedad</h3>
+      <button type="button" class="btn-cerrar" data-cerrar aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <div class="dlg-body">
+      <label for="no-empleado">Empleado</label><select id="no-empleado" required></select>
+      <label for="no-tipo">Tipo</label><select id="no-tipo" required></select>
+      <div class="row" id="no-fechas">
+        <div><label for="no-desde" id="no-desde-label">Desde</label><input id="no-desde" type="date" required></div>
+        <div id="no-hasta-wrap"><label for="no-hasta">Hasta (inclusive)<span class="info" tabindex="0" role="img" aria-label="Último día de la ausencia, que también se cuenta. Ej.: del 10 al 14 son 5 días corridos (incluye sábado y domingo si caen en el medio)." data-info="Último día de la ausencia, que también se cuenta. Ej.: del 10 al 14 son 5 días corridos (incluye sábado y domingo si caen en el medio)."></span></label><input id="no-hasta" type="date"></div>
+      </div>
+      <div class="hint" id="no-dias"></div>
+      <div class="row" id="no-cantidad-wrap" hidden>
+        <div><label for="no-cantidad" id="no-cantidad-label">Cantidad</label><input id="no-cantidad" type="number" min="0" step="any"></div>
+        <div id="no-recargo-wrap" hidden><label for="no-recargo">Recargo<span class="info" tabindex="0" role="img" aria-label="Al 50%: horas extra en días comunes. Al 100%: sábados después de las 13 h, domingos y feriados." data-info="Al 50%: horas extra en días comunes. Al 100%: sábados después de las 13 h, domingos y feriados."></span></label>
+          <select id="no-recargo"><option value="50">50% (días hábiles)</option><option value="100">100% (sábado tarde, domingo, feriado)</option></select></div>
+      </div>
+      <div id="no-vacaciones-wrap" hidden><label for="no-anio">Se descuenta del período<span class="info" tabindex="0" role="img" aria-label="A qué período de vacaciones se le restan estos días. Por defecto, lo tomado de enero a abril se descuenta del año anterior (el período va de octubre a abril)." data-info="A qué período de vacaciones se le restan estos días. Por defecto, lo tomado de enero a abril se descuenta del año anterior (el período va de octubre a abril)."></span></label><select id="no-anio"></select></div>
+      <div id="no-certificado-wrap" hidden><label class="check"><input type="checkbox" id="no-certificado"> Presentó certificado médico</label><span class="info" tabindex="0" role="img" aria-label="Marcarlo cuando el empleado entregó el certificado que justifica la licencia. Queda registrado en su ficha." data-info="Marcarlo cuando el empleado entregó el certificado que justifica la licencia. Queda registrado en su ficha."></span></div>
+      <div class="aviso-horas" id="no-horas" hidden></div>
+      <label for="no-observacion">Observación</label><textarea id="no-observacion" placeholder="Opcional. Sin diagnósticos: solo lo necesario para RRHH."></textarea>
+      <div class="mensaje-error" id="novedad-error" role="alert"></div>
+      <div class="dlg-pie">
+        <button type="button" class="link peligro" id="no-eliminar" hidden style="margin-right:auto">Eliminar</button>
+        <button type="button" class="btn-sec" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn-sec primario" id="no-guardar" value="ok">Guardar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ Diálogo: evaluación ============ -->
+<dialog class="dlg" id="dlg-evaluacion">
+  <form method="dialog" id="form-evaluacion" autocomplete="off">
+    <div class="dlg-head">
+      <h3>Nueva evaluación</h3>
+      <button type="button" class="btn-cerrar" data-cerrar aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <div class="dlg-body">
+      <div class="row">
+        <div><label for="ev-empleado">Empleado</label><select id="ev-empleado" required></select></div>
+        <div><label for="ev-periodo">Período evaluado<span class="info" tabindex="0" role="img" aria-label="Mes al que corresponde la evaluación (no necesariamente el día en que se carga)." data-info="Mes al que corresponde la evaluación (no necesariamente el día en que se carga)."></span></label><input id="ev-periodo" type="month" required></div>
+      </div>
+      <p class="hint">1 = muy por debajo de lo esperado · 3 = cumple · 5 = excelente</p>
+      <div id="ev-criterios"></div>
+      <label for="ev-fortalezas">Fortalezas</label><textarea id="ev-fortalezas"></textarea>
+      <label for="ev-mejorar">A mejorar</label><textarea id="ev-mejorar"></textarea>
+      <div class="mensaje-error" id="evaluacion-error" role="alert"></div>
+      <div class="dlg-pie">
+        <button type="button" class="btn-sec" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn-sec primario" id="ev-guardar" value="ok">Guardar evaluación</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ Diálogo: ajuste de vacaciones (solo admin) ============ -->
+<dialog class="dlg" id="dlg-ajuste">
+  <form method="dialog" id="form-ajuste" autocomplete="off">
+    <div class="dlg-head">
+      <h3 id="dlg-ajuste-titulo">Ajuste de vacaciones</h3>
+      <button type="button" class="btn-cerrar" data-cerrar aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <div class="dlg-body">
+      <div id="aj-lista"></div>
+      <div class="row">
+        <div><label for="aj-dias">Días (+ suma, − resta)<span class="info" tabindex="0" role="img" aria-label="Para corregir el saldo de vacaciones: días que quedaron del período anterior, acuerdos con el empleado o errores de carga. Positivo suma días disponibles, negativo los resta." data-info="Para corregir el saldo de vacaciones: días que quedaron del período anterior, acuerdos con el empleado o errores de carga. Positivo suma días disponibles, negativo los resta."></span></label><input id="aj-dias" type="number" step="0.5" required></div>
+        <div><label for="aj-motivo">Motivo</label><input id="aj-motivo" required placeholder="ej: arrastre período 2025"></div>
+      </div>
+      <div class="mensaje-error" id="ajuste-error" role="alert"></div>
+      <div class="dlg-pie">
+        <button type="button" class="btn-sec" data-cerrar>Cerrar</button>
+        <button type="submit" class="btn-sec primario" value="ok">Agregar ajuste</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ Diálogo: ficha del empleado ============ -->
+<dialog class="dlg ancho" id="dlg-ficha">
+  <div class="dlg-head">
+    <h3 id="ficha-titulo"></h3>
+    <button type="button" class="btn-cerrar" data-cerrar aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body" id="ficha-cuerpo"></div>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<!-- Librería de Supabase (versión fija) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<!-- Configuración. Los ?v= obligan al navegador a bajar la versión nueva:
+     al cambiar cualquier CSS/JS, subir el número en TODAS las líneas. -->
+<script src="js/config.js?v=20261029.1"></script>
+<!-- Lógica (sin pantalla) -->
+<script src="js/utils.js?v=20261029.1"></script>
+<script src="js/calculos.js?v=20261029.1"></script>
+<script src="js/api.js?v=20261029.1"></script>
+<!-- Vistas (pantalla) -->
+<script src="js/vistas/acceso.js?v=20261029.1"></script>
+<script src="js/vistas/ficha.js?v=20261029.1"></script>
+<script src="js/vistas/tablero.js?v=20261029.1"></script>
+<script src="js/vistas/empleados.js?v=20261029.1"></script>
+<script src="js/vistas/novedades.js?v=20261029.1"></script>
+<script src="js/vistas/vacaciones.js?v=20261029.1"></script>
+<script src="js/vistas/evaluaciones.js?v=20261029.1"></script>
+<script src="js/vistas/horas.js?v=20261029.1"></script>
+<script src="js/vistas/configuracion.js?v=20261029.1"></script>
+<!-- Arranque -->
+<script src="js/main.js?v=20261029.1"></script>
+</body>
+</html>

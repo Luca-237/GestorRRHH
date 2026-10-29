@@ -1,0 +1,10 @@
+# Datos de empleados (planillas, exportaciones, cargas iniciales): NUNCA al repo
+datos-privados/
+*.csv
+*.xlsx
+*.xls
+*.json
+!supabase/**/*.json
+# Archivos de Windows
+Thumbs.db
+desktop.ini
