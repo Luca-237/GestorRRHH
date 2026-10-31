@@ -12,11 +12,12 @@
     activos: "Empleados dados de alta y no dados de baja, de la sucursal elegida arriba.",
     hoy: "Empleados que hoy tienen cargada una novedad que es ausencia: vacaciones, franco, licencia médica, falta o licencia especial.",
     tarde: "Cantidad de llegadas tarde registradas en el mes elegido. Abajo, el total de minutos sumados y cuántas personas llegaron tarde al menos una vez.",
-    extra: "Horas extra registradas en el mes. Al 50%: días comunes. Al 100%: sábados después de las 13 h, domingos y feriados.",
+    extra: "Horas extra trabajadas en el mes elegido (por la fecha en que se hicieron, no por el sueldo en que se pagan; eso está en la sección Horas extra). Al 50%: días comunes. Al 100%: sábados desde las 13, domingos y feriados.",
     licencia: "Días corridos de licencia médica que caen dentro del mes elegido (si la licencia sigue el mes siguiente, solo cuentan los días de este mes).",
     faltas: "Días de inasistencia (faltas) cargados en el mes elegido.",
-    horas: "Horas que deben los empleados por permisos o días pedidos, menos las que ya devolvieron. Es el saldo total de la cuenta de horas (no solo del mes). Detalle en Cuenta de horas.",
-    evaluacion: "Promedio de la última evaluación de cada empleado (de 1 a 5). Los que nunca fueron evaluados no cuentan.",
+    pesos: "Dinero cargado en el mes elegido (por su fecha), separado en adelantos de sueldo (plata adelantada), compras en cuenta corriente (mercadería de la tienda) y viáticos.",
+    descontar: "Adelantos y compras en cuenta corriente que todavía no se descontaron de ningún sueldo (de cualquier fecha). Detalle en Descuentos de sueldo.",
+    horas: "Horas que los empleados todavía deben devolver por permisos o días pedidos, descontando lo que ya devolvieron. Es lo que se debe hoy (no solo del mes). Detalle en Cuenta de horas.",
     minTarde: "Total de minutos de llegadas tarde del empleado en el mes.",
     otras: "Licencias especiales y cualquier otro tipo (que no mueva la cuenta de horas) de novedad agregado en Configuración, en su unidad (días, horas o minutos).",
     ausencia: "Suma de los días de todas las novedades que son ausencia (vacaciones, francos, licencias y faltas) en el mes elegido.",
@@ -29,12 +30,6 @@
 
   const celda = (n, txt, alto) => `<td class="num${!n ? " cero" : ""}${alto ? " alto" : ""}">${n ? txt : "0"}</td>`;
 
-  function puntaje(prom) {
-    if (prom == null) return `<span class="cero">—</span>`;
-    const lleno = Math.round(prom);
-    return `<span class="puntaje" title="${fmtNum(prom, 2)} de 5">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= lleno ? "lleno" : ""}"></i>`).join("")}</span> ${fmtNum(prom, 1)}`;
-  }
-
   async function mostrar() {
     const mes = $("tablero-mes").value || mesActual();
     $("tablero-mes").value = mes;
@@ -42,32 +37,41 @@
     const hoyISO = hoy(), en30 = sumarDias(hoyISO, 30);
     const anioVac = R.calc.anioVacacionesDe(hoyISO);
     $("tablero-sub").textContent = `${app().textoSucursal()} · ${mesTexto(mes)}`;
-    $("tablero-kpis").innerHTML = `<p class="cargando">Cargando…</p>`;
+    $("tablero-kpis").innerHTML = R.util.esqueleto.kpis(9);
+    $("tablero-hoy").innerHTML = R.util.esqueleto.lista(3);
+    $("tablero-proximas").innerHTML = R.util.esqueleto.lista(3);
+    $("tablero-empleados").innerHTML = R.util.esqueleto.tabla(10, 8);
+    if (!$("tablero-sucursales-caja").hidden) $("tablero-sucursales").innerHTML = R.util.esqueleto.tabla(6, 4);
 
-    let novedades, vacaciones, ajustes, evaluaciones, movsHoras;
+    let novedades, vacaciones, ajustes, movsHoras, descPend;
     try {
-      [novedades, vacaciones, ajustes, evaluaciones, movsHoras] = await Promise.all([
+      [novedades, vacaciones, ajustes, movsHoras, descPend] = await Promise.all([
         R.api.novedades.entre(desde < hoyISO ? desde : hoyISO, hasta > en30 ? hasta : en30),
         R.api.novedades.deVacaciones(anioVac),
         R.api.ajustes.delAnio(anioVac),
-        R.api.evaluaciones.listar(),
         R.api.novedades.deTipos(R.vistaHoras.clavesCuenta()),
+        R.api.novedades.descuentosPendientes(R.estado.tipos.filter(t => t.descuenta_sueldo).map(t => t.clave)),
       ]);
     } catch (e) { $("tablero-kpis").innerHTML = ""; return toast(e.message, "error", 6000); }
 
     const empleados = app().empleadosVisibles();
     const ids = new Set(empleados.map(e => e.id));
     novedades = novedades.filter(n => ids.has(n.empleado_id));
+    descPend = descPend.filter(n => ids.has(n.empleado_id));
     const tipos = R.estado.tipos;
     const resumen = R.calc.resumirNovedades(novedades, desde, hasta, tipos);
     const vacio = { tardanzas: 0, minutosTarde: 0, horasExtra: 0, horasExtra50: 0, horasExtra100: 0, dias: {}, diasAusente: 0, otros: {} };
     const de = id => resumen.get(id) || vacio;
 
-    // Última evaluación de cada empleado
-    const ultimaEval = new Map();
-    evaluaciones.forEach(ev => { if (ids.has(ev.empleado_id) && !ultimaEval.has(ev.empleado_id)) ultimaEval.set(ev.empleado_id, ev); });
-
     // ---------- Indicadores ----------
+    // Montos en pesos del mes (adelantos, viáticos y otros tipos en pesos)
+    const tiposPesos = new Set(tipos.filter(t => t.unidad === "pesos").map(t => t.clave));
+    const pesos = { total: 0, adelanto: 0, compra_cuenta_corriente: 0, viatico: 0 };
+    novedades.filter(n => tiposPesos.has(n.tipo) && n.fecha_desde >= desde && n.fecha_desde <= hasta).forEach(n => {
+      const c = Number(n.cantidad) || 0;
+      pesos.total += c;
+      if (n.tipo in pesos) pesos[n.tipo] += c;
+    });
     let tardanzas = 0, minTarde = 0, conTarde = 0, he = 0, he50 = 0, he100 = 0, licMed = 0, conLic = 0, faltas = 0;
     empleados.forEach(e => {
       const r = de(e.id);
@@ -78,8 +82,6 @@
     });
     const hoyFuera = R.calc.ausentesEn(hoyISO, novedades, tipos);
     const fueraIds = new Set(hoyFuera.map(n => n.empleado_id));
-    const proms = [...ultimaEval.values()].map(ev => Number(ev.promedio)).filter(n => !isNaN(n));
-    const promedio = proms.length ? proms.reduce((a, b) => a + b, 0) / proms.length : null;
     // Cuenta de horas (todo el historial)
     const saldoHoras = new Map(empleados.map(e => [e.id, R.calc.cuentaHoras(e, movsHoras, tipos).saldo]));
     const deben = [...saldoHoras.values()].filter(h => h > 0.005);
@@ -89,11 +91,12 @@
       kpi("Empleados activos", fmtNum(empleados.length), esc(app().textoSucursal()), true, AYUDA.activos),
       kpi("Hoy no están", fmtNum(fueraIds.size), `de ${fmtNum(empleados.length)} activos`, false, AYUDA.hoy),
       kpi("Llegadas tarde", fmtNum(tardanzas), tardanzas ? `${fmtMinutos(minTarde)} en total · ${conTarde} ${conTarde === 1 ? "persona" : "personas"}` : "ninguna en el mes", false, AYUDA.tarde),
-      kpi("Horas extra", `${fmtNum(he, 1)}<small>h</small>`, he ? `al 50%: ${fmtNum(he50, 1)} h · al 100%: ${fmtNum(he100, 1)} h` : "ninguna en el mes", false, AYUDA.extra),
+      kpi("Horas extra trabajadas", esc(R.calc.fmtHoras(he)), he ? `al 50%: ${esc(R.calc.fmtHoras(he50))} · al 100%: ${esc(R.calc.fmtHoras(he100))}` : "ninguna en el mes", false, AYUDA.extra),
       kpi("Licencia médica", `${fmtNum(licMed)}<small>${licMed === 1 ? "día" : "días"}</small>`, licMed ? `${conLic} ${conLic === 1 ? "persona" : "personas"}` : "ninguna en el mes", false, AYUDA.licencia),
       kpi("Faltas", `${fmtNum(faltas)}<small>${faltas === 1 ? "día" : "días"}</small>`, "inasistencias del mes", false, AYUDA.faltas),
-      kpi("Evaluación promedio", promedio == null ? "—" : `${fmtNum(promedio, 1)}<small>/ 5</small>`, proms.length ? `última de ${proms.length} ${proms.length === 1 ? "empleado" : "empleados"}` : "sin evaluaciones", false, AYUDA.evaluacion),
-      kpi("Horas adeudadas", esc(R.calc.fmtHoras(horasDeuda)), deben.length ? `${deben.length} ${deben.length === 1 ? "empleado debe" : "empleados deben"} horas` : "nadie debe horas", false, AYUDA.horas),
+      kpi("Dinero del mes", esc(R.calc.fmtPesos(pesos.total)), pesos.total ? `adelantos ${esc(R.calc.fmtPesos(pesos.adelanto))} · compras ${esc(R.calc.fmtPesos(pesos.compra_cuenta_corriente))} · viáticos ${esc(R.calc.fmtPesos(pesos.viatico))}` : "ninguno en el mes", false, AYUDA.pesos),
+      kpi("Para descontar del sueldo", esc(R.calc.fmtPesos(descPend.reduce((a, n) => a + Number(n.cantidad || 0), 0))), descPend.length ? `adelantos ${esc(R.calc.fmtPesos(descPend.filter(n => n.tipo === "adelanto").reduce((a, n) => a + Number(n.cantidad || 0), 0)))} · compras ${esc(R.calc.fmtPesos(descPend.filter(n => n.tipo === "compra_cuenta_corriente").reduce((a, n) => a + Number(n.cantidad || 0), 0)))}` : "nada pendiente", false, AYUDA.descontar),
+      kpi("Horas que se adeudan", esc(R.calc.fmtHoras(horasDeuda)), deben.length ? `${deben.length} ${deben.length === 1 ? "empleado debe" : "empleados deben"} horas` : "nadie debe horas", false, AYUDA.horas),
     ].join("");
 
     // ---------- Hoy no están / próximas ausencias ----------
@@ -117,25 +120,24 @@
         const emps = empleados.filter(e => e.sucursal_id === s.id);
         const t = { n: emps.length, fuera: 0, tarde: 0, he: 0, aus: 0 };
         emps.forEach(e => { const r = de(e.id); t.tarde += r.tardanzas; t.he += r.horasExtra; t.aus += r.diasAusente; if (fueraIds.has(e.id)) t.fuera++; });
-        return `<tr class="clic" data-sucursal="${s.id}"><td>${esc(s.nombre)}</td><td class="num">${t.n}</td>${celda(t.fuera, t.fuera)}${celda(t.tarde, t.tarde)}${celda(t.he, fmtNum(t.he, 1))}${celda(t.aus, t.aus)}</tr>`;
+        return `<tr class="clic" data-sucursal="${s.id}"><td>${esc(s.nombre)}</td><td class="num">${t.n}</td>${celda(t.fuera, t.fuera)}${celda(t.tarde, t.tarde)}${celda(t.he, esc(R.calc.fmtHoras(t.he)))}${celda(t.aus, t.aus)}</tr>`;
       });
       $("tablero-sucursales").innerHTML = `<thead><tr><th>Sucursal</th><th class="num">Empleados</th><th class="num">Hoy no están${info(AYUDA.hoy)}</th><th class="num">Llegadas tarde</th><th class="num">Horas extra${info(AYUDA.extra)}</th><th class="num">Días de ausencia${info(AYUDA.ausencia)}</th></tr></thead><tbody>${filas.join("")}</tbody>`;
     }
 
     // ---------- Resumen por empleado ----------
     const conSucursal = !R.estado.filtroSucursal;
-    const otrosTipos = tipos.filter(t => !Number(t.cuenta_horas) && !["vacaciones", "franco", "llegada_tarde", "horas_extra", "licencia_medica", "falta"].includes(t.clave));
+    const otrosTipos = tipos.filter(t => !Number(t.cuenta_horas) && !["pesos", "registro"].includes(t.unidad) && !["vacaciones", "franco", "llegada_tarde", "horas_extra", "licencia_medica", "falta"].includes(t.clave));
     const filas = empleados.map(e => {
       const r = de(e.id);
       const s = R.calc.saldoVacaciones(e, anioVac, vacaciones, ajustes, tipos);
       const otros = otrosTipos.reduce((acc, t) => acc + (r.dias[t.clave] || 0) + (r.otros[t.clave] || 0), 0);
-      const ev = ultimaEval.get(e.id);
       return `<tr class="clic" data-empleado="${e.id}">
         <td>${esc(nombreEmpleado(e))}<small>${esc(e.puesto || "")}</small></td>
         ${conSucursal ? `<td>${esc(app().sucursalNombre(e.sucursal_id))}</td>` : ""}
         ${celda(r.tardanzas, r.tardanzas, r.tardanzas >= TARDANZAS_ALERTA)}
         ${celda(r.minutosTarde, fmtMinutos(r.minutosTarde))}
-        ${celda(r.horasExtra, fmtNum(r.horasExtra, 1) + " h")}
+        ${celda(r.horasExtra, esc(R.calc.fmtHoras(r.horasExtra)))}
         ${celda(r.dias.franco, r.dias.franco)}
         ${celda(r.dias.vacaciones, r.dias.vacaciones)}
         ${celda(r.dias.licencia_medica, r.dias.licencia_medica)}
@@ -143,14 +145,13 @@
         ${celda(otros, fmtNum(otros, 1))}
         <td class="num${s.saldo != null && s.saldo < 0 ? " alto" : ""}">${s.saldo == null ? `—${info("No se puede calcular: falta la fecha de ingreso del empleado.")}` : fmtNum(s.saldo, 1)}</td>
         ${(h => Math.abs(h) < 0.005 ? `<td class="num cero">0</td>` : `<td class="num ${h > 0 ? "debe" : "a-favor"}">${esc(R.calc.fmtHoras(h))}${h < 0 ? " a favor" : ""}</td>`)(saldoHoras.get(e.id) || 0)}
-        <td>${puntaje(ev ? Number(ev.promedio) : null)}</td>
       </tr>`;
     });
     $("tablero-empleados").innerHTML = `<thead><tr><th>Empleado</th>${conSucursal ? "<th>Sucursal</th>" : ""}
       <th class="num">Llegadas tarde</th><th class="num">Min. tarde${info(AYUDA.minTarde)}</th><th class="num">Horas extra${info(AYUDA.extra)}</th><th class="num">Francos</th>
       <th class="num">Vacaciones</th><th class="num">Lic. médica</th><th class="num">Faltas</th><th class="num">Otras${info(AYUDA.otras)}</th>
-      <th class="num">Saldo vac. ${anioVac}${info(`Días de vacaciones que le quedan del período ${anioVac} (de octubre ${anioVac} a abril ${anioVac + 1}): los que corresponden por antigüedad, más o menos los ajustes, menos los ya tomados. Si es negativo, tomó de más.`)}</th><th class="num">Horas adeud.${info("Saldo de la cuenta de horas del empleado: lo que debe por permisos o días pedidos menos lo que ya devolvió. En verde, si tiene horas a favor.")}</th><th>Últ. evaluación${info("Puntaje promedio de la última evaluación de desempeño (de 1 a 5).")}</th></tr></thead>
-      <tbody>${filas.join("") || `<tr><td colspan="13" class="vacio">No hay empleados activos${R.estado.filtroSucursal ? " en esta sucursal" : ""}. ${app().esAdmin() ? "Cargalos en Empleados." : ""}</td></tr>`}</tbody>`;
+      <th class="num">Saldo vac. ${anioVac}${info(`Días de vacaciones que le quedan del período ${anioVac} (de octubre ${anioVac} a abril ${anioVac + 1}): los que corresponden por antigüedad, más o menos los ajustes, menos los ya tomados. Si es negativo, tomó de más.`)}</th><th class="num">Adeuda${info("Saldo de la cuenta de horas del empleado: lo que debe por permisos o días pedidos menos lo que ya devolvió. En verde, si tiene horas a favor.")}</th></tr></thead>
+      <tbody>${filas.join("") || `<tr><td colspan="12" class="vacio">No hay empleados activos${R.estado.filtroSucursal ? " en esta sucursal" : ""}. ${app().esAdmin() ? "Cargalos en Empleados." : ""}</td></tr>`}</tbody>`;
   }
 
   function iniciar() {

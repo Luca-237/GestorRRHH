@@ -36,6 +36,11 @@
     return partes.join(" y ") || "menos de un mes";
   }
 
+  // Horas redondeadas al minuto: en la planilla 0,33 significa 20 min, y sumadas sin redondear
+  // tres de esas darían 0,99 h. Todas las sumas de horas pasan por acá.
+  const enHoras = c => Math.round((Number(c) || 0) * 60) / 60;
+  const sumarHoras = lista => lista.reduce((a, n) => a + enHoras(n.cantidad), 0);
+
   // Resumen de novedades por empleado dentro de [desde, hasta].
   // Devuelve Map(empleado_id -> { tardanzas, minutosTarde, horasExtra, horasExtra50, horasExtra100, dias: {tipo: n}, diasAusente })
   function resumirNovedades(novedades, desde, hasta, tipos) {
@@ -59,8 +64,9 @@
         const c = Number(n.cantidad) || 0;
         if (n.tipo === "llegada_tarde") { r.tardanzas++; r.minutosTarde += c; }
         else if (n.tipo === "horas_extra") {
-          r.horasExtra += c;
-          if (Number(n.recargo) === 100) r.horasExtra100 += c; else r.horasExtra50 += c;
+          const h = enHoras(c);
+          r.horasExtra += h;
+          if (Number(n.recargo) === 100) r.horasExtra100 += h; else r.horasExtra50 += h;
         } else {
           r.otros[n.tipo] = (r.otros[n.tipo] || 0) + c;
         }
@@ -70,17 +76,19 @@
   }
 
   // Saldo de vacaciones de un empleado para el período `anio`
-  function saldoVacaciones(empleado, anio, novedades, ajustes, tipos) {
+  // tomados = todos los días cargados del período (los ya gozados + los programados a futuro)
+  function saldoVacaciones(empleado, anio, novedades, ajustes, tipos, hoyISO = R.util.hoy()) {
     const descuentan = new Set(tipos.filter(t => t.descuenta_vacaciones).map(t => t.clave));
     const corresponden = vacacionesCorresponden(empleado.fecha_ingreso, anio);
-    const tomados = novedades
-      .filter(n => n.empleado_id === empleado.id && descuentan.has(n.tipo) && Number(n.anio_vacaciones) === anio)
-      .reduce((s, n) => s + Number(n.cantidad || 0), 0);
+    const goces = novedades.filter(n => n.empleado_id === empleado.id && descuentan.has(n.tipo) && Number(n.anio_vacaciones) === anio);
+    const tomados = goces.reduce((s, n) => s + Number(n.cantidad || 0), 0);
+    const gozados = goces.reduce((s, n) => s + solapamiento(n.fecha_desde, n.fecha_hasta, "1900-01-01", hoyISO), 0);
+    const programados = tomados - gozados;
     const ajuste = ajustes
       .filter(a => a.empleado_id === empleado.id && Number(a.anio) === anio)
       .reduce((s, a) => s + Number(a.dias || 0), 0);
     const saldo = corresponden === null ? null : corresponden + ajuste - tomados;
-    return { corresponden, tomados, ajuste, saldo };
+    return { corresponden, tomados, gozados, programados, ajuste, saldo };
   }
 
   // ---------- Cuenta corriente de horas ----------
@@ -88,7 +96,7 @@
   // Horas que representa una novedad: horas tal cual, minutos /60, días × jornada del empleado
   function horasDeNovedad(n, tipo, empleado) {
     const c = Number(n.cantidad) || 0;
-    if (tipo.unidad === "horas") return c;
+    if (tipo.unidad === "horas") return enHoras(c);
     if (tipo.unidad === "minutos") return c / 60;
     return c * (Number(empleado && empleado.jornada_horas) || JORNADA_POR_DEFECTO);
   }
@@ -108,7 +116,13 @@
     movimientos.sort((a, b) => a.novedad.fecha_desde.localeCompare(b.novedad.fecha_desde));
     let acumulado = 0;
     movimientos.forEach(m => { acumulado += m.horas; m.saldo = acumulado; });
-    return { adeudadas, devueltas, saldo: adeudadas - devueltas, movimientos };
+    // Deudas que todavía se deben: cada devolución cancela primero las deudas más viejas (como en la planilla)
+    let porCancelar = enHoras(devueltas);
+    const pendientes = movimientos.filter(m => m.horas > 0).map(m => {
+      const aplicado = Math.min(m.horas, porCancelar); porCancelar -= aplicado;
+      return { novedad: m.novedad, original: m.horas, pendiente: m.horas - aplicado };
+    }).filter(p => p.pendiente > 0.005);
+    return { adeudadas, devueltas, saldo: adeudadas - devueltas, movimientos, pendientes };
   }
 
   // 2,5 h -> "2 h 30 min"; para mostrar saldos de la cuenta
@@ -117,6 +131,132 @@
     const hh = Math.floor(min / 60), mm = min % 60;
     if (!hh && !mm) return "0 h";
     return [hh ? `${hh} h` : "", mm ? `${mm} min` : ""].filter(Boolean).join(" ");
+  }
+
+  // ---------- Montos, cantidades y horarios ----------
+  const fmtPesos = n => "$ " + Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+  // Cantidad de una novedad en su unidad: "3 días", "25 min", "4 h · 100%", "$ 15.000" o "—"
+  function cantidadTexto(n, tipo) {
+    const c = Number(n.cantidad) || 0;
+    switch (tipo.unidad) {
+      case "minutos": return R.util.fmtMinutos(c);
+      case "horas": return `${fmtHoras(c)}${n.recargo ? ` · ${n.recargo}%` : ""}`;
+      case "pesos": return fmtPesos(c);
+      case "registro": return "—";
+      default: return `${R.util.fmtNum(c)} ${c === 1 ? "día" : "días"}`;
+    }
+  }
+
+  // "09:34:00" -> minutos desde las 00:00
+  const aMinutos = h => { if (!h) return null; const [a, b] = String(h).split(":").map(Number); return a * 60 + (b || 0); };
+  const HORA_ENTRADA_POR_DEFECTO = "09:00";
+  // Hora de entrada de un empleado: la suya, si no la de su sucursal, si no 09:00 (igual que la base)
+  function horaEntrada(empleado) {
+    if (empleado && empleado.hora_entrada) return { hora: empleado.hora_entrada.slice(0, 5), origen: "propia" };
+    const s = empleado && R.estado && (R.estado.sucursales || []).find(x => x.id === empleado.sucursal_id);
+    if (s && s.hora_entrada) return { hora: s.hora_entrada.slice(0, 5), origen: "sucursal " + s.nombre };
+    return { hora: HORA_ENTRADA_POR_DEFECTO, origen: "por defecto" };
+  }
+  function minutosTarde(horaLlegada, empleado) {
+    const llegada = aMinutos(horaLlegada), entrada = aMinutos(horaEntrada(empleado).hora);
+    return llegada == null ? null : Math.max(0, llegada - entrada);
+  }
+  // Horas entre dos horarios ("16:00" → "20:20" = 4,33 h); cruza la medianoche si hace falta
+  function horasEntre(desde, hasta) {
+    const a = aMinutos(desde), b = aMinutos(hasta);
+    if (a == null || b == null) return null;
+    return ((b - a + 1440) % 1440) / 60;
+  }
+
+  // Horas extra: 100% los domingos, feriados y sábados desde las 13; 50% el resto (LCT art. 201)
+  function recargoSugerido(fechaISO, hora, feriados) {
+    const dia = new Date(fechaISO + "T00:00:00Z").getUTCDay(); // 0 domingo, 6 sábado
+    if (dia === 0 || (feriados || []).some(f => f.fecha === fechaISO)) return 100;
+    if (dia === 6 && aMinutos(hora) != null && aMinutos(hora) >= 13 * 60) return 100;
+    return 50;
+  }
+
+  // ---------- Revisión de horas extra ----------
+  // Devuelve Map(id -> [motivos]) con las cargas que conviene revisar antes de liquidar:
+  //  · repetidas (mismo empleado, día, hora y cantidad)
+  //  · más de una carga el mismo día
+  //  · una carga "agrupada" que nombra días (dd/mm) que también están cargados aparte
+  //  · una carga "x N sábados" cuando ese mes ya hay sábados cargados aparte
+  //  · sábado desde las 13, domingo o feriado al 50%
+  function revisarHorasExtra(lista, feriados) {
+    const res = new Map();
+    const marcar = (id, m) => { if (!res.has(id)) res.set(id, []); if (!res.get(id).includes(m)) res.get(id).push(m); };
+    const fmt = iso => iso.slice(8, 10) + "/" + iso.slice(5, 7);
+    const esSabado = iso => new Date(iso + "T00:00:00Z").getUTCDay() === 6;
+    const delEmpleado = new Map();
+    lista.forEach(n => { if (!delEmpleado.has(n.empleado_id)) delEmpleado.set(n.empleado_id, []); delEmpleado.get(n.empleado_id).push(n); });
+    for (const propias of delEmpleado.values()) {
+      for (const n of propias) {
+        const mismoDia = propias.filter(o => o.id !== n.id && o.fecha_desde === n.fecha_desde);
+        if (mismoDia.some(o => o.hora === n.hora && Number(o.cantidad) === Number(n.cantidad))) marcar(n.id, "Repetida: hay otra carga igual el mismo día.");
+        else if (mismoDia.length) marcar(n.id, `Hay ${mismoDia.length + 1} cargas el ${fmt(n.fecha_desde)}: revisar que no se superpongan.`);
+        const obs = n.observacion || "";
+        const dias = [...obs.matchAll(/(\d{1,2})\/(\d{1,2})/g)]
+          .map(m => `${n.fecha_desde.slice(0, 4)}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`)
+          .filter(d => d !== n.fecha_desde && propias.some(o => o.id !== n.id && o.fecha_desde === d));
+        if (dias.length) {
+          marcar(n.id, `Incluye días que también están cargados aparte (${dias.map(fmt).join(", ")}): posible doble carga.`);
+          propias.filter(o => dias.includes(o.fecha_desde)).forEach(o => marcar(o.id, `También está sumada en la carga del ${fmt(n.fecha_desde)} ("${obs.split(/\r?\n/)[0].trim().slice(0, 40)}").`));
+        }
+        if (/s[aá]b/i.test(obs) && /\d/.test(obs)) {
+          const mes = n.fecha_desde.slice(0, 7);
+          const sabados = propias.filter(o => o.id !== n.id && o.fecha_desde.startsWith(mes) && esSabado(o.fecha_desde) && o.fecha_desde <= n.fecha_desde && !/s[aá]b/i.test(o.observacion || ""));
+          if (sabados.length) {
+            marcar(n.id, `Suma varios sábados, y ese mes también hay sábados cargados aparte (${[...new Set(sabados.map(o => fmt(o.fecha_desde)))].join(", ")}): posible doble carga.`);
+            sabados.forEach(o => marcar(o.id, `Puede estar incluida en la carga de sábados del ${fmt(n.fecha_desde)}.`));
+          }
+        }
+        if (Number(n.recargo) === 50 && recargoSugerido(n.fecha_desde, n.hora, feriados) === 100) marcar(n.id, "Domingo, feriado o sábado desde las 13 cargado al 50%.");
+      }
+    }
+    return res;
+  }
+
+  // ---------- Asistencia: horarios, llegadas tarde y minutos a favor ----------
+  const HORARIO_POR_DEFECTO = { entrada: "09:00", salida: "18:00", extraEntrada: 30, extraSalida: 10, modo: "todo" };
+  const hhmm = h => (h ? String(h).slice(0, 5) : null);
+
+  // Horario de un empleado. Entrada y salida: las suyas, si no las de su sucursal, si no las de por defecto.
+  // Umbrales: los suyos, si no los generales (Configuración → Horarios y minutos a favor).
+  function horarioDe(empleado, estado = R.estado) {
+    const suc = empleado && ((estado && estado.sucursales) || []).find(x => x.id === empleado.sucursal_id);
+    const gen = (estado && estado.horarios) || {};
+    const num = (a, b, c) => [a, b, c].find(v => v !== null && v !== undefined && v !== "" && !isNaN(Number(v)));
+    return {
+      entrada: hhmm(empleado && empleado.hora_entrada) || hhmm(suc && suc.hora_entrada) || HORARIO_POR_DEFECTO.entrada,
+      salida: hhmm(empleado && empleado.hora_salida) || hhmm(suc && suc.hora_salida) || HORARIO_POR_DEFECTO.salida,
+      extraEntrada: Number(num(empleado && empleado.extra_entrada_min, gen.extra_entrada_min, HORARIO_POR_DEFECTO.extraEntrada)),
+      extraSalida: Number(num(empleado && empleado.extra_salida_min, gen.extra_salida_min, HORARIO_POR_DEFECTO.extraSalida)),
+      modo: gen.modo_extra || HORARIO_POR_DEFECTO.modo,
+      propio: !!(empleado && (empleado.hora_entrada || empleado.hora_salida || empleado.extra_entrada_min != null || empleado.extra_salida_min != null)),
+    };
+  }
+
+  // Minutos de un día a partir de lo que marcó el empleado:
+  //  · tarde: minutos que llegó después de su hora de entrada.
+  //  · extraEntrada: si llegó 'extraEntrada' minutos o más ANTES de su hora de entrada, esos minutos
+  //    (desde que llegó hasta la hora de entrada de la jornada común).
+  //  · extraSalida: si salió 'extraSalida' minutos o más DESPUÉS de su hora de salida, esos minutos.
+  //  En modo "todo" se cuentan todos los minutos una vez superado el umbral; en "excedente", solo los que lo pasan.
+  function minutosAsistencia(entrada, salida, horario) {
+    const e = aMinutos(entrada), sa = aMinutos(salida), he = aMinutos(horario.entrada), hs = aMinutos(horario.salida);
+    const contar = (min, umbral) => min >= umbral && min > 0 ? (horario.modo === "excedente" ? min - umbral : min) : 0;
+    const tarde = e != null ? Math.max(0, e - he) : 0;
+    const extraEntrada = e != null ? contar(Math.max(0, he - e), horario.extraEntrada) : 0;
+    const extraSalida = sa != null ? contar(Math.max(0, sa - hs), horario.extraSalida) : 0;
+    return { tarde, extraEntrada, extraSalida, aFavor: extraEntrada + extraSalida };
+  }
+
+  // Período sin vacaciones que toca [desde, hasta] para un empleado (general o de su sucursal)
+  function periodoBloqueado(desde, hasta, empleado) {
+    return (R.estado && R.estado.periodos || []).find(p => (!p.sucursal_id || (empleado && p.sucursal_id === empleado.sucursal_id))
+      && p.fecha_desde <= hasta && p.fecha_hasta >= desde) || null;
   }
 
   // Período vacacional por defecto de una fecha (enero-abril -> año anterior)
@@ -129,5 +269,8 @@
   }
 
   R.calc = { vacacionesCorresponden, antiguedad, resumirNovedades, saldoVacaciones, anioVacacionesDe, ausentesEn,
-    horasDeNovedad, cuentaHoras, fmtHoras, JORNADA_POR_DEFECTO };
+    horasDeNovedad, cuentaHoras, fmtHoras, JORNADA_POR_DEFECTO,
+    fmtPesos, cantidadTexto, minutosTarde, recargoSugerido, HORA_ENTRADA_POR_DEFECTO,
+    enHoras, sumarHoras, horaEntrada, horasEntre, revisarHorasExtra, periodoBloqueado,
+    HORARIO_POR_DEFECTO, horarioDe, minutosAsistencia };
 })(window.RRHH);

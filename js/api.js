@@ -4,10 +4,11 @@
 //  (Para probar sin base: pruebas/api-falsa.js reemplaza este objeto.)
 // =====================================================================
 (function (R) {
-  const CAMPOS_EMPLEADO = ["apellido", "nombre", "dni", "cuil", "sucursal_id", "puesto", "jornada_horas",
-    "fecha_ingreso", "fecha_egreso", "activo", "telefono", "notas"];
+  const CAMPOS_EMPLEADO = ["apellido", "nombre", "legajo", "dni", "cuil", "sucursal_id", "puesto", "sector", "jornada_horas", "hora_entrada", "hora_salida", "extra_entrada_min", "extra_salida_min",
+    "fecha_ingreso", "fecha_egreso", "activo", "motivo_baja", "telefono", "email", "fecha_nacimiento", "direccion", "obra_social", "banco",
+    "contacto_emergencia_nombre", "contacto_emergencia_tel", "notas"];
   const CAMPOS_NOVEDAD = ["empleado_id", "tipo", "fecha_desde", "fecha_hasta", "cantidad", "recargo",
-    "anio_vacaciones", "con_certificado", "observacion"];
+    "anio_vacaciones", "con_certificado", "observacion", "hora", "liquidado_en"];
   let sb = null;
 
   function configurado() {
@@ -35,6 +36,11 @@
     if (/row-level security|permission denied/i.test(m)) return "No tenés permiso para hacer esto.";
     if (/JWT expired/i.test(m)) return "La sesión venció. Volvé a ingresar.";
     if (/empleados_dni_uq|duplicate key.*dni/i.test(m)) return "Ya hay un empleado cargado con ese DNI.";
+    if (/empleados_legajo_uq/i.test(m)) return "Ya hay un empleado con ese legajo.";
+    if (/feriados_pkey/i.test(m)) return "Ese feriado ya está cargado.";
+    if (/puestos_compartidos_nombre_key/i.test(m)) return "Ya hay un puesto compartido con ese nombre.";
+    if (/puestos_compartidos_miembros_pkey/i.test(m)) return "Esa persona ya está en este puesto compartido.";
+    if (/eventos_check|fecha_hasta >= fecha_desde/i.test(m)) return "La fecha \"hasta\" no puede ser anterior a \"desde\".";
     if (/fecha_hasta >= fecha_desde|novedades_check/i.test(m)) return "La fecha \"hasta\" no puede ser anterior a \"desde\".";
     if (/empleados_puesto_fkey/i.test(m)) return "Ese puesto no está en la lista. Agregalo en Configuración → Puestos.";
     if (/puestos_nombre_key|sucursales_nombre_key|duplicate key/i.test(m)) return "Ya existe uno con ese nombre.";
@@ -54,7 +60,7 @@
       if (d[k] === undefined) return;
       let v = d[k];
       if (typeof v === "string") v = v.trim();
-      if (v === "" && /fecha|_id$|jornada|recargo|anio|cantidad|puesto/.test(k)) v = null;
+      if (v === "" && /fecha|_id$|jornada|recargo|anio|cantidad|puesto|hora|liquidado|extra_/.test(k)) v = null;
       out[k] = v;
     });
     return out;
@@ -87,7 +93,7 @@
 
   // ---------- Catálogos ----------
   const sucursales = {
-    listar: () => todo(() => sb.from("sucursales").select("id, nombre, orden, activa").order("orden").order("nombre")),
+    listar: () => todo(() => sb.from("sucursales").select("*").order("orden").order("nombre")),
     async crear(nombre) { return chequear(await sb.from("sucursales").insert({ nombre: nombre.trim() }).select().single()); },
     async actualizar(id, d) { chequear(await sb.from("sucursales").update(d).eq("id", id)); },
   };
@@ -103,12 +109,6 @@
     listar: () => todo(() => sb.from("puestos").select("id, nombre, orden, activo").order("orden").order("nombre")),
     async crear(nombre) { return chequear(await sb.from("puestos").insert({ nombre: nombre.trim() }).select().single()); },
     async actualizar(id, d) { chequear(await sb.from("puestos").update(d).eq("id", id)); },
-  };
-
-  const criterios = {
-    listar: () => todo(() => sb.from("criterios_evaluacion").select("*").order("orden").order("nombre")),
-    async crear(nombre) { return chequear(await sb.from("criterios_evaluacion").insert({ nombre: nombre.trim() }).select().single()); },
-    async actualizar(id, d) { chequear(await sb.from("criterios_evaluacion").update(d).eq("id", id)); },
   };
 
   // ---------- Empleados ----------
@@ -132,6 +132,58 @@
     async crear(d) { return chequear(await sb.from("novedades").insert(limpiar(d, CAMPOS_NOVEDAD)).select(COLS_NOVEDAD).single()); },
     async actualizar(id, d) { return chequear(await sb.from("novedades").update(limpiar(d, CAMPOS_NOVEDAD)).eq("id", id).select(COLS_NOVEDAD).single()); },
     async eliminar(id) { chequear(await sb.from("novedades").delete().eq("id", id)); },
+    // Falta que generó sola una llegada tarde (cada 3 acumuladas)
+    async generadaPor(id) { return chequear(await sb.from("novedades").select(COLS_NOVEDAD).eq("generada_por", id).maybeSingle()); },
+    // Horas extra sin liquidar (de cualquier fecha) y las liquidadas en un mes
+    horasExtraPendientes: () => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").is("liquidado_en", null).order("fecha_desde")),
+    horasExtraLiquidadas: mesISO => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").eq("liquidado_en", mesISO).order("fecha_desde")),
+    // Adelantos y compras en cuenta corriente: lo pendiente de descontar y lo descontado en el sueldo de un mes
+    descuentosPendientes: claves => claves.length ? todo(() => sb.from("novedades").select(COLS_NOVEDAD).in("tipo", claves).is("liquidado_en", null).order("fecha_desde")) : Promise.resolve([]),
+    descuentosDelMes: (claves, mesISO) => claves.length ? todo(() => sb.from("novedades").select(COLS_NOVEDAD).in("tipo", claves).eq("liquidado_en", mesISO).order("fecha_desde")) : Promise.resolve([]),
+    async liquidar(ids, fecha) { chequear(await sb.from("novedades").update({ liquidado_en: fecha }).in("id", ids)); },
+  };
+
+  // ---------- Liquidaciones de vacaciones (la nota y el pago; marcan los goces del período) ----------
+  const liquidaciones = {
+    delAnio: anio => todo(() => sb.from("vacaciones_liquidaciones").select("*").eq("anio", anio).order("fecha_liquidacion")),
+    deEmpleado: id => todo(() => sb.from("vacaciones_liquidaciones").select("*").eq("empleado_id", id).order("fecha_liquidacion", { ascending: false })),
+    async crear(d) { return chequear(await sb.from("vacaciones_liquidaciones").insert(d).select().single()); },
+    async eliminar(id) { chequear(await sb.from("vacaciones_liquidaciones").delete().eq("id", id)); },
+  };
+
+  // ---------- Eventos del calendario ----------
+  const eventos = {
+    entre: (desde, hasta) => todo(() => sb.from("eventos").select("*").lte("fecha_desde", hasta).gte("fecha_hasta", desde).order("fecha_desde")),
+    async crear(d) { return chequear(await sb.from("eventos").insert(d).select().single()); },
+    async actualizar(id, d) { return chequear(await sb.from("eventos").update(d).eq("id", id).select().single()); },
+    async eliminar(id) { chequear(await sb.from("eventos").delete().eq("id", id)); },
+  };
+
+  // ---------- Puestos compartidos (solo uno de vacaciones a la vez; lo controla la base) ----------
+  const compartidos = {
+    async listar() {
+      const filas = await todo(() => sb.from("puestos_compartidos").select("id, nombre, descripcion, puestos_compartidos_miembros(empleado_id)").order("nombre"));
+      return filas.map(p => ({ id: p.id, nombre: p.nombre, descripcion: p.descripcion, miembros: (p.puestos_compartidos_miembros || []).map(m => m.empleado_id) }));
+    },
+    async crear(nombre, descripcion = "") { return chequear(await sb.from("puestos_compartidos").insert({ nombre: nombre.trim(), descripcion: descripcion.trim() }).select().single()); },
+    async actualizar(id, d) { chequear(await sb.from("puestos_compartidos").update(d).eq("id", id)); },
+    async eliminar(id) { chequear(await sb.from("puestos_compartidos").delete().eq("id", id)); },
+    async agregar(id, empleadoId) { chequear(await sb.from("puestos_compartidos_miembros").insert({ puesto_compartido_id: id, empleado_id: empleadoId })); },
+    async quitar(id, empleadoId) { chequear(await sb.from("puestos_compartidos_miembros").delete().eq("puesto_compartido_id", id).eq("empleado_id", empleadoId)); },
+  };
+
+  // ---------- Períodos sin vacaciones (la base no deja cargar vacaciones adentro) ----------
+  const periodos = {
+    listar: () => todo(() => sb.from("periodos_sin_vacaciones").select("*").order("fecha_desde")),
+    async crear(d) { return chequear(await sb.from("periodos_sin_vacaciones").insert(d).select().single()); },
+    async eliminar(id) { chequear(await sb.from("periodos_sin_vacaciones").delete().eq("id", id)); },
+  };
+
+  // ---------- Feriados ----------
+  const feriados = {
+    listar: () => todo(() => sb.from("feriados").select("fecha, descripcion").order("fecha")),
+    async crear(fecha, descripcion) { chequear(await sb.from("feriados").insert({ fecha, descripcion: descripcion.trim() })); },
+    async eliminar(fecha) { chequear(await sb.from("feriados").delete().eq("fecha", fecha)); },
   };
 
   // ---------- Ajustes de vacaciones ----------
@@ -141,14 +193,25 @@
     async eliminar(id) { chequear(await sb.from("vacaciones_ajustes").delete().eq("id", id)); },
   };
 
-  // ---------- Evaluaciones ----------
-  const evaluaciones = {
-    listar: () => todo(() => sb.from("evaluaciones").select("*").order("periodo", { ascending: false }).order("fecha", { ascending: false })),
-    async crear(d) {
-      const s = await auth.sesion();
-      return chequear(await sb.from("evaluaciones").insert({ ...d, evaluador: s.user.id }).select().single());
+  // ---------- Asistencia: hora de entrada y de salida de cada empleado por día ----------
+  const asistencia = {
+    entre: (desde, hasta, empleadoId) => todo(() => {
+      let q = sb.from("asistencia").select("*").gte("fecha", desde).lte("fecha", hasta);
+      if (empleadoId) q = q.eq("empleado_id", empleadoId);
+      return q.order("fecha");
+    }),
+    // Una fila por empleado y día: si ya existe se corrige
+    async guardar(d) {
+      return chequear(await sb.from("asistencia").upsert({ empleado_id: d.empleado_id, fecha: d.fecha, entrada: d.entrada || null, salida: d.salida || null, observacion: (d.observacion || "").trim() },
+        { onConflict: "empleado_id,fecha" }).select().single());
     },
-    async eliminar(id) { chequear(await sb.from("evaluaciones").delete().eq("id", id)); },
+    async eliminar(empleadoId, fecha) { chequear(await sb.from("asistencia").delete().eq("empleado_id", empleadoId).eq("fecha", fecha)); },
+  };
+
+  // ---------- Horarios generales y minutos a favor (una sola fila, la cambia el admin) ----------
+  const horarios = {
+    async obtener() { return chequear(await sb.from("ajustes_horarios").select("*").eq("id", 1).single()); },
+    async actualizar(d) { return chequear(await sb.from("ajustes_horarios").update(d).eq("id", 1).select().single()); },
   };
 
   // ---------- Usuarios (Edge Function, solo admin) ----------
@@ -174,5 +237,5 @@
     resetearPassword: (id, password) => usuarios.llamar("resetear_password", { id, password }),
   };
 
-  R.api = { configurado, iniciar, auth, sucursales, puestos, tipos, criterios, empleados, novedades, ajustes, evaluaciones, usuarios };
+  R.api = { configurado, iniciar, auth, sucursales, puestos, tipos, empleados, novedades, liquidaciones, feriados, eventos, compartidos, periodos, ajustes, asistencia, horarios, usuarios };
 })(window.RRHH);

@@ -123,25 +123,122 @@ window.RRHH = window.RRHH || {};
     function ocultar() { actual = null; globo.hidden = true; }
 
     document.addEventListener("mouseover", e => {
-      const el = e.target.closest(".info[data-info]");
+      const el = e.target.closest("[data-info]");
       if (el && el !== actual) mostrar(el);
     });
     document.addEventListener("mouseout", e => {
-      const el = e.target.closest(".info[data-info]");
+      const el = e.target.closest("[data-info]");
       if (el && el === actual && !el.contains(e.relatedTarget)) ocultar();
     });
     // Con el teclado (Tab) también se puede leer
-    document.addEventListener("focusin", e => { if (e.target.matches(".info[data-info]:focus-visible")) mostrar(e.target); });
+    document.addEventListener("focusin", e => { if (e.target.matches("[data-info]:focus-visible")) mostrar(e.target); });
     document.addEventListener("focusout", e => { if (e.target === actual) ocultar(); });
     // Si la página o una tabla se mueve, el globo quedaría en el aire
     document.addEventListener("scroll", () => { if (actual) ocultar(); }, true);
     // Que tocar la "i" no abra la fila o el diálogo donde está
-    document.addEventListener("click", e => { if (e.target.closest(".info[data-info]")) e.stopPropagation(); }, true);
+    document.addEventListener("click", e => { if (e.target.closest(".info[data-info], .marca-revisar")) e.stopPropagation(); }, true);
   }
+
+  // ---------- Diálogos propios (en vez de confirm/prompt del navegador) ----------
+  // confirm() y prompt() nativos se ven distinto en cada navegador y algunos los
+  // bloquean sin avisar; estos usan el mismo estilo de la app y devuelven una promesa.
+  let dlgPregunta = null;
+  function armarDialogo() {
+    if (dlgPregunta) return dlgPregunta;
+    dlgPregunta = document.createElement("dialog");
+    dlgPregunta.className = "dlg dlg-pregunta";
+    dlgPregunta.innerHTML = `<form method="dialog">
+      <div class="dlg-head"><h3></h3></div>
+      <div class="dlg-body"><p class="pregunta-texto"></p><div class="pregunta-campos"></div>
+        <div class="mensaje-error" role="alert"></div>
+        <div class="dlg-pie"><button type="button" class="btn-sec" value="no">Cancelar</button><button type="submit" class="btn-sec primario" value="si">Aceptar</button></div></div>
+    </form>`;
+    document.body.appendChild(dlgPregunta);
+    return dlgPregunta;
+  }
+
+  // campos: [{ nombre, etiqueta, valor, tipo, requerido, min, ayuda }] → { nombre: valor } o null si cancela
+  function formulario({ titulo, texto = "", campos = [], aceptar = "Aceptar", peligro = false }) {
+    const d = armarDialogo();
+    // Si hay otro diálogo abierto, el nuevo va adentro para quedar arriba
+    (document.querySelector("dialog[open]:not(.dlg-pregunta)") || document.body).appendChild(d);
+    d.querySelector("h3").textContent = titulo;
+    d.querySelector(".pregunta-texto").textContent = texto;
+    d.querySelector(".pregunta-texto").hidden = !texto;
+    d.querySelector(".mensaje-error").textContent = "";
+    d.querySelector(".pregunta-campos").innerHTML = campos.map((c, i) => `<label for="preg-${i}">${esc(c.etiqueta)}</label>
+      <input id="preg-${i}" name="${esc(c.nombre)}" type="${c.tipo || "text"}" value="${esc(c.valor ?? "")}" ${c.requerido ? "required" : ""} ${c.min ? `minlength="${c.min}"` : ""} autocomplete="off">
+      ${c.ayuda ? `<div class="hint">${esc(c.ayuda)}</div>` : ""}`).join("");
+    const ok = d.querySelector('button[value="si"]');
+    ok.textContent = aceptar;
+    ok.classList.toggle("peligro", peligro);
+    return new Promise(resolver => {
+      const cancelar = d.querySelector('button[value="no"]');
+      const terminar = valor => { d.close(); form.onsubmit = null; cancelar.onclick = null; d.oncancel = null; resolver(valor); };
+      const form = d.querySelector("form");
+      form.onsubmit = e => {
+        e.preventDefault();
+        const datos = {};
+        campos.forEach((c, i) => { datos[c.nombre] = d.querySelector(`#preg-${i}`).value.trim(); });
+        terminar(datos);
+      };
+      cancelar.onclick = () => terminar(null);
+      d.oncancel = e => { e.preventDefault(); terminar(null); };
+      d.showModal();
+      (d.querySelector(".pregunta-campos input") || ok).focus();
+    });
+  }
+  const confirmar = (texto, { titulo = "Confirmar", aceptar = "Aceptar", peligro = false } = {}) =>
+    formulario({ titulo, texto, aceptar, peligro }).then(r => r !== null);
+  const pedir = (titulo, valor = "", { etiqueta = titulo, tipo = "text", min, ayuda } = {}) =>
+    formulario({ titulo, campos: [{ nombre: "valor", etiqueta, valor, tipo, min, ayuda, requerido: true }] }).then(r => r ? r.valor : null);
+
+  // ---------- Esqueletos de carga ----------
+  // Mientras llegan los datos se muestra la forma de lo que va a aparecer (barras grises
+  // con un brillo suave) en vez de "Cargando…". Los anchos varían para que no se vea plano.
+  const ANCHOS = [72, 48, 86, 60, 40, 78, 54, 66, 90, 45];
+  const barra = (ancho, alto = 12, extra = "") => `<span class="esq" style="width:${ancho}${typeof ancho === "number" ? "%" : ""}; height:${alto}px${extra}"></span>`;
+  const aviso = `<span class="sr-only">Cargando…</span>`;
+  const esqueleto = {
+    kpis(n = 4) {
+      return aviso + Array.from({ length: n }, (_, i) => `<div class="kpi" aria-hidden="true">${barra(55 + (i % 3) * 10, 10)}${barra(38, 28, "; margin-top:12px")}${barra(70 - (i % 2) * 15, 10, "; margin-top:10px")}${barra(40, 10, "; margin-top:6px")}</div>`).join("");
+    },
+    // Solo filas (para un <tbody> que ya tiene encabezado)
+    filas(cols, n = 6) {
+      return Array.from({ length: n }, (_, f) => `<tr class="esq-fila" aria-hidden="true">${Array.from({ length: cols }, (_, c) =>
+        `<td>${c === 0 ? barra(ANCHOS[f % 10], 12) + barra(40, 9, "; margin-top:6px") : barra(ANCHOS[(f + c) % 10] - 10, 12)}</td>`).join("")}</tr>`).join("");
+    },
+    // Tabla completa: encabezado + filas
+    tabla(cols, n = 6) {
+      return `<thead><tr>${Array.from({ length: cols }, (_, c) => `<th>${barra(c === 0 ? 50 : 70, 9)}</th>`).join("")}</tr></thead><tbody>${esqueleto.filas(cols, n)}</tbody>`;
+    },
+    lista(n = 3) {
+      return Array.from({ length: n }, (_, i) => `<li aria-hidden="true"><span style="flex:1">${barra(ANCHOS[i] - 15, 12)}${barra(35, 9, "; margin-top:6px")}</span>${barra(70, 18, "; max-width:90px; border-radius:999px")}</li>`).join("");
+    },
+    calendario() {
+      const dias = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+      // [fila, columna, largo] de algunos rectángulos de mentira por semana
+      const piezas = [[[2, 1, 3], [3, 4, 2]], [[2, 2, 2], [3, 5, 3]], [[2, 1, 1], [2, 4, 4]], [[2, 3, 2]], [[2, 6, 2], [3, 1, 3]]];
+      const semana = bs => `<div class="cal-semana" style="--carriles:3">${Array.from({ length: 7 }, (_, c) =>
+        `<div class="cal-dia" style="grid-column:${c + 1}" aria-hidden="true"><div class="cal-num">${barra("18px", 12)}</div></div>`).join("")}${bs.map(([f, c, l]) =>
+        `<div aria-hidden="true" style="grid-row:${f}; grid-column:${c} / span ${l}; padding:0 3px; align-self:center">${barra(100, 18, "; border-radius:6px")}</div>`).join("")}</div>`;
+      return aviso + `<div class="cal-cabecera">${dias.map(d => `<div>${d}</div>`).join("")}</div><div class="cal-mes">${piezas.map(semana).join("")}</div>`;
+    },
+    ficha() {
+      return aviso + `<div aria-hidden="true"><dl class="ficha-datos">${Array.from({ length: 12 }, (_, i) => `<div><dt>${barra(45, 9)}</dt><dd>${barra(ANCHOS[i % 10], 13, "; margin-top:6px")}</dd></div>`).join("")}</dl>
+        <div class="kpis" style="margin-top:8px">${esqueleto.kpis(4).replace(aviso, "")}</div>
+        <div class="tabla-wrap" style="margin-top:14px"><table class="tabla grilla">${esqueleto.tabla(4, 5)}</table></div></div>`;
+    },
+    cajas(n = 2) {
+      return aviso + Array.from({ length: n }, () => `<div class="caja" aria-hidden="true">${barra(30, 18)}${barra(55, 10, "; margin-top:10px")}
+        <div style="display:flex; gap:8px; margin:18px 0">${barra("150px", 30, "; border-radius:999px")}${barra("130px", 30, "; border-radius:999px")}</div>
+        <div class="tabla-wrap"><table class="tabla grilla">${esqueleto.tabla(5, 3)}</table></div></div>`).join("");
+    },
+  };
 
   R.util = {
     $, esc, norm, aEmail, aUsuario, hoy, mesActual, aFecha, aISO, sumarDias, diasEntre, solapamiento,
     rangoMes, mesTexto, fmtFecha, fmtCorta, fmtNum, fmtMinutos, nombreEmpleado, toast, descargarCSV,
-    iniciarDialogos, info, iniciarAyudas, ICONOS,
+    iniciarDialogos, info, iniciarAyudas, ICONOS, esqueleto, confirmar, pedir, formulario,
   };
 })(window.RRHH);

@@ -10,8 +10,12 @@
     empleados: () => R.vistaEmpleados,
     novedades: () => R.vistaNovedades,
     vacaciones: () => R.vistaVacaciones,
-    evaluaciones: () => R.vistaEvaluaciones,
+    asistencia: () => R.vistaAsistencia,
     horas: () => R.vistaHoras,
+    descuentos: () => R.vistaDescuentos,
+    calendario: () => R.vistaCalendario,
+    compartidos: () => R.vistaCompartidos,
+    "horas-extra": () => R.vistaHorasExtra,
     configuracion: () => R.vistaConfiguracion,
   };
   let vistaActual = null;
@@ -28,7 +32,7 @@
       const f = R.estado.filtroSucursal;
       return R.estado.empleados.filter(e => (inactivos || e.activo) && (!f || e.sucursal_id === Number(f)));
     },
-    // ¿La novedad/evaluación es de un empleado visible con el filtro actual?
+    // ¿La novedad es de un empleado visible con el filtro actual?
     esVisible(empleadoId) {
       const f = R.estado.filtroSucursal, e = app.empleado(empleadoId);
       return !!e && (!f || e.sucursal_id === Number(f));
@@ -47,14 +51,27 @@
       const sel = seleccionado != null ? Number(seleccionado) : null;
       // Si se está editando algo de un empleado dado de baja, que igual aparezca
       if (sel && !lista.some(e => e.id === sel) && app.empleado(sel)) lista.push(app.empleado(sel));
+      // Agrupados por sucursal y ordenados por apellido, para encontrarlos rápido
+      const grupos = new Map();
+      [...lista].sort((a, b) => R.util.nombreEmpleado(a).localeCompare(R.util.nombreEmpleado(b))).forEach(e => {
+        const s = app.sucursalNombre(e.sucursal_id);
+        if (!grupos.has(s)) grupos.set(s, []);
+        grupos.get(s).push(e);
+      });
+      const opcion = e => `<option value="${e.id}" ${e.id === sel ? "selected" : ""}>${esc(R.util.nombreEmpleado(e))}${e.legajo ? " · " + esc(e.legajo) : ""}${e.activo ? "" : " (de baja)"}</option>`;
       return (vacia ? `<option value="">${esc(vacia)}</option>` : "") +
-        lista.map(e => `<option value="${e.id}" ${e.id === sel ? "selected" : ""}>${esc(R.util.nombreEmpleado(e))} · ${esc(app.sucursalNombre(e.sucursal_id))}</option>`).join("");
+        [...grupos.entries()].map(([s, es]) => grupos.size > 1 ? `<optgroup label="${esc(s)}">${es.map(opcion).join("")}</optgroup>` : es.map(opcion).join("")).join("");
     },
     async recargarEmpleados() { R.estado.empleados = await R.api.empleados.listar(); },
     async recargarCatalogos() {
-      const [sucursales, puestos, tipos, criterios] = await Promise.all([
-        R.api.sucursales.listar(), R.api.puestos.listar(), R.api.tipos.listar(), R.api.criterios.listar()]);
-      Object.assign(R.estado, { sucursales, puestos, tipos, criterios });
+      const [sucursales, puestos, tipos, feriados] = await Promise.all([
+        R.api.sucursales.listar(), R.api.puestos.listar(), R.api.tipos.listar(), R.api.feriados.listar()]);
+      Object.assign(R.estado, { sucursales, puestos, tipos, feriados });
+      // Puestos compartidos: si la tabla todavía no existe (migración sin correr), la app sigue andando
+      R.estado.compartidos = await R.api.compartidos.listar().catch(() => []);
+      R.estado.periodos = await R.api.periodos.listar().catch(() => []);
+      // Horarios generales: si la migración de asistencia todavía no se corrió, se usan 30 y 10 minutos
+      R.estado.horarios = await R.api.horarios.obtener().catch(() => null);
       pintarFiltroSucursal();
     },
     // Vuelve a dibujar la sección abierta (después de guardar algo)
@@ -76,6 +93,7 @@
     document.querySelectorAll("[data-seccion]").forEach(s => { s.hidden = s.id !== "vista-" + nombre; });
     document.querySelectorAll(".lateral a").forEach(a => a.classList.toggle("activo", a.dataset.vista === nombre));
     $("lateral").classList.remove("abierto");
+    $("velo-menu").hidden = true;
     VISTAS[nombre]().mostrar();
   }
 
@@ -125,7 +143,7 @@
     vistaActual = null;
   }
 
-  const estadoInicial = () => ({ perfil: null, sucursales: [], puestos: [], tipos: [], criterios: [], empleados: [], filtroSucursal: "" });
+  const estadoInicial = () => ({ perfil: null, sucursales: [], puestos: [], feriados: [], compartidos: [], periodos: [], tipos: [], horarios: null, empleados: [], filtroSucursal: "" });
 
   async function arrancar() {
     R.estado = estadoInicial();
@@ -141,7 +159,37 @@
     R.vistaFicha.iniciar();
 
     window.addEventListener("hashchange", () => { if (R.estado.perfil) ir(); });
-    $("btn-menu").addEventListener("click", () => $("lateral").classList.toggle("abierto"));
+    // Menú lateral: en computadora se recoge (y se recuerda); en celular se abre encima con un velo
+    const esAncho = () => window.matchMedia("(min-width: 901px)").matches;
+    const cerrarCelular = () => { $("lateral").classList.remove("abierto"); $("velo-menu").hidden = true; actualizarBoton(); };
+    // Con solo los iconos, cada uno muestra su nombre al pasar el mouse (globo de ayuda)
+    const rotularIconos = () => {
+      const soloIconos = esAncho() && document.body.classList.contains("menu-cerrado");
+      document.querySelectorAll("#lateral a[data-vista]").forEach(a => {
+        if (soloIconos) { a.dataset.info = a.textContent.trim(); a.setAttribute("aria-label", a.textContent.trim()); }
+        else { delete a.dataset.info; a.removeAttribute("aria-label"); }
+      });
+    };
+    const actualizarBoton = () => {
+      rotularIconos();
+      const abierto = esAncho() ? !document.body.classList.contains("menu-cerrado") : $("lateral").classList.contains("abierto");
+      $("btn-menu").setAttribute("aria-expanded", String(abierto));
+      $("btn-menu").title = abierto ? "Ocultar el menú" : "Mostrar el menú";
+    };
+    $("btn-menu").addEventListener("click", () => {
+      if (esAncho()) {
+        const cerrado = document.body.classList.toggle("menu-cerrado");
+        try { localStorage.setItem("rrhh.menu", cerrado ? "cerrado" : "abierto"); } catch (e) {}
+      } else {
+        const abierto = $("lateral").classList.toggle("abierto");
+        $("velo-menu").hidden = !abierto;
+      }
+      actualizarBoton();
+    });
+    $("velo-menu").addEventListener("click", cerrarCelular);
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && $("lateral").classList.contains("abierto")) cerrarCelular(); });
+    window.matchMedia("(min-width: 901px)").addEventListener("change", () => { cerrarCelular(); });
+    actualizarBoton();
     $("filtro-sucursal").addEventListener("change", e => {
       R.estado.filtroSucursal = e.target.value;
       try { localStorage.setItem("rrhh.sucursal", e.target.value); } catch (err) {}
