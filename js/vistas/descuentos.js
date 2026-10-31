@@ -98,6 +98,7 @@
   }
 
   function iniciar() {
+    R.importarCC.iniciar();
     $("desc-mes").addEventListener("change", mostrar);
     $("form-desc-liquidar").addEventListener("submit", descontar);
     $("desc-nueva-compra").addEventListener("click", () => R.vistaNovedades.abrirFormulario({ tipo: "compra_cuenta_corriente" }));

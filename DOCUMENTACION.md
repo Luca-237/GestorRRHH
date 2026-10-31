@@ -75,3 +75,10 @@ Los datos del modo demo son **inventados** y se pierden al recargar. El modo dem
 - Cargar los empleados reales (desde la app, como admin).
 - Crear el repo privado y desplegar (`GUIA-DESPLIEGUE.md`).
 - Definir con Antonella si la exportación para liquidación necesita otro formato o columnas.
+
+## Importar saldos de cuenta corriente (Descuentos de sueldo, solo admin)
+- Se sube la planilla de saldos del sistema de gestión (siempre igual: N.º de cliente, nombre, Saldo Actual; .xls o .xlsx). La lee el navegador, no se sube a ningún servidor.
+- Por cada empleado con saldo mayor a cero se deja **una compra en cuenta corriente** por el saldo actual (fecha de la planilla, tomada del nombre del archivo), pendiente de descontar. Reemplaza las compras pendientes que ya tuviera ese empleado; las ya descontadas no se tocan.
+- Quien no es empleado, está dado de baja o tiene saldo cero **no se carga**. Antes de cargar se muestra todo para revisar, y avisa si la suma no coincide con el "Total General" de la planilla.
+- Emparejamiento: por **N.º de cliente** (columna `empleados.codigo_cliente`, migración `20261031040000_codigo_cliente.sql`); la primera vez, por nombre (sin importar orden ni tildes) y se guarda el número. Si hay dudas (nombre parecido u homónimos), se elige a mano en pantalla.
+- La librería de lectura (`js/lib/xlsx.full.min.js`, SheetJS 0.18.5) se baja solo al elegir un archivo.

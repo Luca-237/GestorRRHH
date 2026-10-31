@@ -61,6 +61,7 @@
     $("em-legajo").value = v.legajo || "";
     $("em-sector").value = v.sector || "";
     $("em-entrada").value = (v.hora_entrada || "").slice(0, 5);
+    $("em-codigo").value = v.codigo_cliente || "";
     $("em-salida").value = (v.hora_salida || "").slice(0, 5);
     $("em-min-entrada").value = v.extra_entrada_min ?? "";
     $("em-min-salida").value = v.extra_salida_min ?? "";
@@ -95,7 +96,7 @@
       fecha_ingreso: $("em-ingreso").value, fecha_egreso: $("em-egreso").value,
       activo: $("em-activo").checked, notas: $("em-notas").value,
       legajo: $("em-legajo").value.toUpperCase(), sector: $("em-sector").value, hora_entrada: $("em-entrada").value,
-      hora_salida: $("em-salida").value, extra_entrada_min: $("em-min-entrada").value, extra_salida_min: $("em-min-salida").value,
+      codigo_cliente: $("em-codigo").value.replace(/\D/g, ""), hora_salida: $("em-salida").value, extra_entrada_min: $("em-min-entrada").value, extra_salida_min: $("em-min-salida").value,
       fecha_nacimiento: $("em-nacimiento").value, email: $("em-email").value, direccion: $("em-direccion").value,
       obra_social: $("em-obra").value, banco: $("em-banco").value,
       contacto_emergencia_nombre: $("em-ce-nombre").value, contacto_emergencia_tel: $("em-ce-tel").value,

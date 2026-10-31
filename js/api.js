@@ -4,7 +4,7 @@
 //  (Para probar sin base: pruebas/api-falsa.js reemplaza este objeto.)
 // =====================================================================
 (function (R) {
-  const CAMPOS_EMPLEADO = ["apellido", "nombre", "legajo", "dni", "cuil", "sucursal_id", "puesto", "sector", "jornada_horas", "hora_entrada", "hora_salida", "extra_entrada_min", "extra_salida_min",
+  const CAMPOS_EMPLEADO = ["apellido", "nombre", "legajo", "dni", "cuil", "sucursal_id", "puesto", "sector", "jornada_horas", "hora_entrada", "hora_salida", "extra_entrada_min", "extra_salida_min", "codigo_cliente",
     "fecha_ingreso", "fecha_egreso", "activo", "motivo_baja", "telefono", "email", "fecha_nacimiento", "direccion", "obra_social", "banco",
     "contacto_emergencia_nombre", "contacto_emergencia_tel", "notas"];
   const CAMPOS_NOVEDAD = ["empleado_id", "tipo", "fecha_desde", "fecha_hasta", "cantidad", "recargo",
@@ -36,6 +36,7 @@
     if (/row-level security|permission denied/i.test(m)) return "No tenés permiso para hacer esto.";
     if (/JWT expired/i.test(m)) return "La sesión venció. Volvé a ingresar.";
     if (/empleados_dni_uq|duplicate key.*dni/i.test(m)) return "Ya hay un empleado cargado con ese DNI.";
+    if (/empleados_codigo_cliente_uq/i.test(m)) return "Ese número de cliente ya lo tiene otro empleado.";
     if (/empleados_legajo_uq/i.test(m)) return "Ya hay un empleado con ese legajo.";
     if (/feriados_pkey/i.test(m)) return "Ese feriado ya está cargado.";
     if (/puestos_compartidos_nombre_key/i.test(m)) return "Ya hay un puesto compartido con ese nombre.";
@@ -60,7 +61,7 @@
       if (d[k] === undefined) return;
       let v = d[k];
       if (typeof v === "string") v = v.trim();
-      if (v === "" && /fecha|_id$|jornada|recargo|anio|cantidad|puesto|hora|liquidado|extra_/.test(k)) v = null;
+      if (v === "" && /fecha|_id$|jornada|recargo|anio|cantidad|puesto|hora|liquidado|extra_|codigo/.test(k)) v = null;
       out[k] = v;
     });
     return out;

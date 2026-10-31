@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23e84e1b'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/app.css?v=20261031.12">
+<link rel="stylesheet" href="css/app.css?v=20261031.13">
 </head>
 <body>
 <script>
@@ -308,6 +308,14 @@
         </div>
       </div>
       <div class="kpis" id="desc-kpis"></div>
+      <div class="caja" data-solo-admin hidden>
+        <h2>Importar saldos de cuenta corriente<span class="info" tabindex="0" role="img" aria-label="Cargá la planilla de saldos que se baja siempre igual del sistema de gestión. Por cada empleado con saldo se deja una compra en cuenta corriente por el saldo actual, pendiente de descontar. Reemplaza las compras pendientes que ya tuviera, así no se duplican. Las personas que no son empleados no se cargan. Antes de cargar se muestra todo para revisarlo." data-info="Cargá la planilla de saldos que se baja siempre igual del sistema de gestión. Por cada empleado con saldo se deja una compra en cuenta corriente por el saldo actual, pendiente de descontar. Reemplaza las compras pendientes que ya tuviera, así no se duplican. Las personas que no son empleados no se cargan. Antes de cargar se muestra todo para revisarlo."></span></h2>
+        <div class="filtros" style="margin:0">
+          <div style="flex:1; min-width:240px"><label for="cc-archivo">Planilla (.xls o .xlsx)</label><input type="file" id="cc-archivo" accept=".xls,.xlsx"></div>
+          <div><label for="cc-fecha">Saldos al<span class="info" tabindex="0" role="img" aria-label="Fecha de los saldos. Se completa sola con la del nombre del archivo y se puede cambiar." data-info="Fecha de los saldos. Se completa sola con la del nombre del archivo y se puede cambiar."></span></label><input type="date" id="cc-fecha"></div>
+        </div>
+        <div id="cc-resultado"></div>
+      </div>
       <div class="caja">
         <h2>Pendiente por empleado<span class="info" tabindex="0" role="img" aria-label="Lo que hay que descontar a cada empleado en su próximo sueldo, separado entre adelantos (plata adelantada) y compras en cuenta corriente (mercadería de la tienda)." data-info="Lo que hay que descontar a cada empleado en su próximo sueldo, separado entre adelantos (plata adelantada) y compras en cuenta corriente (mercadería de la tienda)."></span></h2>
         <div class="tabla-wrap"><table class="tabla grilla con-nombre" id="tabla-desc-empleados"></table></div>
@@ -465,6 +473,7 @@
         <div><label for="em-sector">Sector<span class="info" tabindex="0" role="img" aria-label="Área donde trabaja dentro de la sucursal (Salón, Caja, Depósito, Ventas…). Texto libre; se sugieren los que ya se usan." data-info="Área donde trabaja dentro de la sucursal (Salón, Caja, Depósito, Ventas…). Texto libre; se sugieren los que ya se usan."></span></label><input id="em-sector" list="lista-sectores"></div>
         <div><label for="em-jornada">Jornada (horas por día)<span class="info" tabindex="0" role="img" aria-label="Horas de trabajo por día según el contrato. Ej.: 8 para jornada completa, 4 para media jornada." data-info="Horas de trabajo por día según el contrato. Ej.: 8 para jornada completa, 4 para media jornada."></span></label><input id="em-jornada" type="number" min="0" max="24" step="0.5"></div>
         <div><label for="em-entrada">Hora de entrada<span class="info" tabindex="0" role="img" aria-label="Solo si este empleado entra a otra hora que el resto de su sucursal. Si se deja vacía, se usa la hora de entrada de la sucursal (Configuración → Sucursales). Con ella se calculan los minutos de cada llegada tarde." data-info="Solo si este empleado entra a otra hora que el resto de su sucursal. Si se deja vacía, se usa la hora de entrada de la sucursal (Configuración → Sucursales). Con ella se calculan los minutos de cada llegada tarde."></span></label><input id="em-entrada" type="time"></div>
+        <div><label for="em-codigo">N.º de cliente<span class="info" tabindex="0" role="img" aria-label="Número de este empleado en el sistema de gestión (cuenta corriente). Se completa solo al importar la planilla de saldos; solo hace falta escribirlo para corregirlo." data-info="Número de este empleado en el sistema de gestión (cuenta corriente). Se completa solo al importar la planilla de saldos; solo hace falta escribirlo para corregirlo."></span></label><input id="em-codigo" inputmode="numeric" placeholder="ej: 4489"></div>
         <div><label for="em-salida">Hora de salida<span class="info" tabindex="0" role="img" aria-label="Solo si este empleado sale a otra hora que el resto de su sucursal. Si se deja vacía, se usa la hora de salida de la sucursal (Configuración → Sucursales)." data-info="Solo si este empleado sale a otra hora que el resto de su sucursal. Si se deja vacía, se usa la hora de salida de la sucursal (Configuración → Sucursales)."></span></label><input id="em-salida" type="time"></div>
         <div><label for="em-min-entrada">Mínimo antes de la entrada (min)<span class="info" tabindex="0" role="img" aria-label="Minutos de anticipación para que cuenten a favor. Dejalo vacío para usar el general (Configuración → Horarios y minutos a favor)." data-info="Minutos de anticipación para que cuenten a favor. Dejalo vacío para usar el general (Configuración → Horarios y minutos a favor)."></span></label><input id="em-min-entrada" type="number" min="0" step="1" inputmode="numeric" placeholder="general"></div>
         <div><label for="em-min-salida">Mínimo después de la salida (min)<span class="info" tabindex="0" role="img" aria-label="Minutos después de su hora de salida para que cuenten a favor. Dejalo vacío para usar el general." data-info="Minutos después de su hora de salida para que cuenten a favor. Dejalo vacío para usar el general."></span></label><input id="em-min-salida" type="number" min="0" step="1" inputmode="numeric" placeholder="general"></div>
@@ -652,26 +661,27 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <!-- Configuración. Los ?v= obligan al navegador a bajar la versión nueva:
      al cambiar cualquier CSS/JS, subir el número en TODAS las líneas. -->
-<script src="js/config.js?v=20261031.12"></script>
+<script src="js/config.js?v=20261031.13"></script>
 <!-- Lógica (sin pantalla) -->
-<script src="js/utils.js?v=20261031.12"></script>
-<script src="js/calculos.js?v=20261031.12"></script>
-<script src="js/api.js?v=20261031.12"></script>
+<script src="js/utils.js?v=20261031.13"></script>
+<script src="js/calculos.js?v=20261031.13"></script>
+<script src="js/api.js?v=20261031.13"></script>
 <!-- Vistas (pantalla) -->
-<script src="js/vistas/acceso.js?v=20261031.12"></script>
-<script src="js/vistas/ficha.js?v=20261031.12"></script>
-<script src="js/vistas/tablero.js?v=20261031.12"></script>
-<script src="js/vistas/empleados.js?v=20261031.12"></script>
-<script src="js/vistas/novedades.js?v=20261031.12"></script>
-<script src="js/vistas/vacaciones.js?v=20261031.12"></script>
-<script src="js/vistas/asistencia.js?v=20261031.12"></script>
-<script src="js/vistas/horas.js?v=20261031.12"></script>
-<script src="js/vistas/horas-extra.js?v=20261031.12"></script>
-<script src="js/vistas/descuentos.js?v=20261031.12"></script>
-<script src="js/vistas/calendario.js?v=20261031.12"></script>
-<script src="js/vistas/compartidos.js?v=20261031.12"></script>
-<script src="js/vistas/configuracion.js?v=20261031.12"></script>
+<script src="js/vistas/acceso.js?v=20261031.13"></script>
+<script src="js/vistas/ficha.js?v=20261031.13"></script>
+<script src="js/vistas/tablero.js?v=20261031.13"></script>
+<script src="js/vistas/empleados.js?v=20261031.13"></script>
+<script src="js/vistas/novedades.js?v=20261031.13"></script>
+<script src="js/vistas/vacaciones.js?v=20261031.13"></script>
+<script src="js/vistas/asistencia.js?v=20261031.13"></script>
+<script src="js/vistas/horas.js?v=20261031.13"></script>
+<script src="js/vistas/horas-extra.js?v=20261031.13"></script>
+<script src="js/vistas/importar-cc.js?v=20261031.13"></script>
+<script src="js/vistas/descuentos.js?v=20261031.13"></script>
+<script src="js/vistas/calendario.js?v=20261031.13"></script>
+<script src="js/vistas/compartidos.js?v=20261031.13"></script>
+<script src="js/vistas/configuracion.js?v=20261031.13"></script>
 <!-- Arranque -->
-<script src="js/main.js?v=20261031.12"></script>
+<script src="js/main.js?v=20261031.13"></script>
 </body>
 </html>

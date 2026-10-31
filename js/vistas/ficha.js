@@ -83,6 +83,7 @@
         ${dato("Puesto", e.puesto)}
         ${dato("Sector", e.sector)}
         ${dato("Jornada", e.jornada_horas ? `${fmtNum(e.jornada_horas, 1)} h` : "")}
+        ${dato("N.º de cliente", e.codigo_cliente, "Número de este empleado en el sistema de gestión (cuenta corriente). Con él se emparejan solos los saldos al importar la planilla.")}
         ${dato("Horario", hz.entrada + " a " + hz.salida + (e.hora_entrada || e.hora_salida ? " (propio)" : " (de su sucursal)"), "Hora de entrada y de salida. Si el empleado no tiene una propia, se usa la de su sucursal. Se cambia en Editar datos.")}
         ${dato("Minutos a favor desde", hz.extraEntrada + " min antes de la entrada · " + hz.extraSalida + " min después de la salida" + (e.extra_entrada_min != null || e.extra_salida_min != null ? " (propios)" : ""), "Mínimo de minutos de anticipación o de permanencia para que se cuenten a favor. Si el empleado no tiene los suyos, valen los generales (Configuración → Horarios y minutos a favor).")}
         ${dato("Ingreso", e.fecha_ingreso ? fmtFecha(e.fecha_ingreso) : "")}

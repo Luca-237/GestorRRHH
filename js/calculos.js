@@ -253,6 +253,41 @@
     return { tarde, extraEntrada, extraSalida, aFavor: extraEntrada + extraSalida };
   }
 
+  // ---------- Planilla de saldos de cuenta corriente (reporte del sistema de gestión) ----------
+  // "160,752.94" (o "1.234,56") -> 160752.94
+  const numeroDeReporte = s => {
+    let t = String(s == null ? "" : s).trim();
+    if (!t) return NaN;
+    t = /^-?\d{1,3}(\.\d{3})*,\d+$/.test(t) ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "");
+    return Number(t);
+  };
+  // Filas de la hoja -> { filas: [{ codigo, nombre, saldo }], total } (total = el "Total General" de la planilla, para controlar la suma)
+  function leerSaldosCuentaCorriente(hoja) {
+    const cab = hoja.findIndex(f => f.some(c => /saldo\s+actual/i.test(String(c))));
+    if (cab < 0) throw new Error('No parece la planilla de saldos: falta la columna "Saldo Actual".');
+    const colSaldo = hoja[cab].findIndex(c => /saldo\s+actual/i.test(String(c)));
+    const filas = []; let total = null;
+    for (const f of hoja.slice(cab + 1)) {
+      const codigo = String(f[0] == null ? "" : f[0]).trim(), nombre = String(f[2] == null ? "" : f[2]).trim(), saldo = numeroDeReporte(f[colSaldo]);
+      if (/^total/i.test(codigo) && !isNaN(saldo)) total = saldo;
+      else if (/^\d+$/.test(codigo) && nombre && !isNaN(saldo)) filas.push({ codigo, nombre, saldo: Math.round(saldo * 100) / 100 });
+    }
+    return { filas, total };
+  }
+  // A qué empleado corresponde una fila: por número de cliente; si no, por nombre (sin importar el orden ni las tildes).
+  // via: "codigo" | "nombre" (seguro) | "dudoso" (hay que elegir) | "ninguno"
+  const palabras = s => R.util.norm(s).replace(/[^A-Z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
+  function emparejarEmpleado(fila, empleados) {
+    const porCodigo = empleados.find(e => e.codigo_cliente && String(e.codigo_cliente).trim() === fila.codigo);
+    if (porCodigo) return { via: "codigo", empleado: porCodigo, candidatos: [] };
+    const clave = ps => [...ps].sort().join(" "), pf = palabras(fila.nombre);
+    const iguales = empleados.filter(e => clave(palabras(e.apellido + " " + e.nombre)) === clave(pf));
+    if (iguales.length === 1 && !iguales[0].codigo_cliente) return { via: "nombre", empleado: iguales[0], candidatos: [] };
+    if (iguales.length) return { via: "dudoso", empleado: null, candidatos: iguales };
+    const parecidos = empleados.filter(e => palabras(e.apellido + " " + e.nombre).filter(p => pf.includes(p)).length >= 2);
+    return { via: parecidos.length ? "dudoso" : "ninguno", empleado: null, candidatos: parecidos };
+  }
+
   // Período sin vacaciones que toca [desde, hasta] para un empleado (general o de su sucursal)
   function periodoBloqueado(desde, hasta, empleado) {
     return (R.estado && R.estado.periodos || []).find(p => (!p.sucursal_id || (empleado && p.sucursal_id === empleado.sucursal_id))
@@ -272,5 +307,5 @@
     horasDeNovedad, cuentaHoras, fmtHoras, JORNADA_POR_DEFECTO,
     fmtPesos, cantidadTexto, minutosTarde, recargoSugerido, HORA_ENTRADA_POR_DEFECTO,
     enHoras, sumarHoras, horaEntrada, horasEntre, revisarHorasExtra, periodoBloqueado,
-    HORARIO_POR_DEFECTO, horarioDe, minutosAsistencia };
+    HORARIO_POR_DEFECTO, horarioDe, minutosAsistencia, leerSaldosCuentaCorriente, emparejarEmpleado };
 })(window.RRHH);
