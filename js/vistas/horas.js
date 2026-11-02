@@ -86,7 +86,31 @@
     return R.calc.cuentaHoras(e, movs, R.estado.tipos);
   }
 
+  // Deja la cuenta de horas en cero: por cada empleado que debe horas se registra una devolución por lo que debe.
+  // No se borra nada: queda el historial y cada devolución se puede corregir o borrar.
+  async function reiniciar() {
+    let movs;
+    try { movs = await R.api.novedades.deTipos(clavesCuenta()); } catch (e) { return toast(e.message, "error", 6000); }
+    const deben = R.estado.empleados.map(e => ({ e, saldo: R.calc.cuentaHoras(e, movs, R.estado.tipos).saldo })).filter(x => x.saldo > 0.005);
+    if (!deben.length) return toast("Nadie debe horas: no hay nada que reiniciar.");
+    const total = deben.reduce((a, x) => a + x.saldo, 0);
+    if (!await R.util.confirmar(`Se registra una devolución por lo que debe cada empleado, para dejar la cuenta de horas en cero: ${deben.length} ${deben.length === 1 ? "empleado" : "empleados"}, ${fmtH(total)} en total (de todas las sucursales). No se borra nada: las deudas quedan en el historial y cada devolución se puede corregir o borrar después.`,
+      { titulo: "Dejar la cuenta de horas en cero", aceptar: "Dejar en cero", peligro: true })) return;
+    $("horas-reiniciar").disabled = true;
+    const fallas = [];
+    for (const { e, saldo } of deben) {
+      try {
+        await R.api.novedades.crear({ empleado_id: e.id, tipo: "devolucion_horas", fecha_desde: R.util.hoy(), fecha_hasta: R.util.hoy(),
+          cantidad: Math.round(saldo * 100) / 100, observacion: "Reinicio de la cuenta de horas: se saldan todas las deudas" });
+      } catch (err) { fallas.push(nombreEmpleado(e) + ": " + err.message); }
+    }
+    $("horas-reiniciar").disabled = false;
+    toast(fallas.length ? "No se pudo para: " + fallas.join(" · ") : `Listo: ${deben.length} ${deben.length === 1 ? "cuenta quedó" : "cuentas quedaron"} en cero.`, fallas.length ? "error" : "ok", fallas.length ? 8000 : 3500);
+    mostrar();
+  }
+
   function iniciar() {
+    $("horas-reiniciar").addEventListener("click", reiniciar);
     $("horas-deuda").addEventListener("click", () => R.vistaNovedades.abrirFormulario({ tipo: "permiso_horas" }));
     $("horas-devolucion").addEventListener("click", () => R.vistaNovedades.abrirFormulario({ tipo: "devolucion_horas" }));
     $("vista-horas").addEventListener("click", e => {

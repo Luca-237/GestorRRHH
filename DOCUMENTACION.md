@@ -82,3 +82,5 @@ Los datos del modo demo son **inventados** y se pierden al recargar. El modo dem
 - Quien no es empleado, está dado de baja o tiene saldo cero **no se carga**. Antes de cargar se muestra todo para revisar, y avisa si la suma no coincide con el "Total General" de la planilla.
 - Emparejamiento: por **N.º de cliente** (columna `empleados.codigo_cliente`, migración `20261031040000_codigo_cliente.sql`); la primera vez, por nombre (sin importar orden ni tildes) y se guarda el número. Si hay dudas (nombre parecido u homónimos), se elige a mano en pantalla.
 - La librería de lectura (`js/lib/xlsx.full.min.js`, SheetJS 0.18.5) se baja solo al elegir un archivo.
+
+- **Cuenta de horas → "Dejar todo en cero" (admin):** por cada empleado que debe horas (de todas las sucursales) registra una devolución por lo que debe, para reiniciar la cuenta. No borra nada: las deudas quedan en el historial.
