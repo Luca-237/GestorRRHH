@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23e84e1b'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/app.css?v=20261031.14">
+<link rel="stylesheet" href="css/app.css?v=20261103.1">
 </head>
 <body>
 <script>
@@ -98,8 +98,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg><span class="lateral-txt">Vacaciones</span></a>
     <a href="#compartidos" data-vista="compartidos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg><span class="lateral-txt">Puestos compartidos</span></a>
-    <a href="#asistencia" data-vista="asistencia">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg><span class="lateral-txt">Asistencia</span></a>
     <a href="#descuentos" data-vista="descuentos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
       <span class="lateral-txt">Descuentos de sueldo</span></a>
@@ -242,31 +240,6 @@
       <div id="pc-lista"></div>
     </section>
 
-    <!-- ======== Asistencia ======== -->
-    <section id="vista-asistencia" data-seccion hidden>
-      <div class="vista-head">
-        <div><h1>Asistencia</h1><p class="sub" id="as-sub"></p></div>
-        <div class="controles">
-          <div class="cal-nav">
-            <button type="button" class="btn-sec" id="as-anterior" aria-label="Día anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
-            <button type="button" class="btn-sec" id="as-hoy">Hoy</button>
-            <button type="button" class="btn-sec" id="as-siguiente" aria-label="Día siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
-          </div>
-          <div><label for="as-fecha">Día</label><input type="date" id="as-fecha"></div>
-        </div>
-      </div>
-      <div class="caja">
-        <h2>Planilla del día<span class="info" tabindex="0" role="img" aria-label="Cargá la hora a la que entró y a la que salió cada empleado. Se guarda sola al cambiar la hora. Con eso se calculan los minutos de llegada tarde y los minutos a favor. Si borrás la entrada y la salida, se borra el registro de ese día." data-info="Cargá la hora a la que entró y a la que salió cada empleado. Se guarda sola al cambiar la hora. Con eso se calculan los minutos de llegada tarde y los minutos a favor. Si borrás la entrada y la salida, se borra el registro de ese día."></span></h2>
-        <p class="sub" id="as-dia" style="margin:-4px 0 12px"></p>
-        <div class="tabla-wrap"><table class="tabla grilla con-nombre" id="tabla-asistencia"></table></div>
-        <p class="hint">Llegar tarde se cuenta desde la hora de entrada. Los minutos a favor cuentan si llegó con el mínimo de minutos de anticipación (hasta su hora de entrada) o se quedó el mínimo de minutos después de su hora de salida. Salir antes no suma ni resta.</p>
-      </div>
-      <div class="caja">
-        <h2 id="as-mes-titulo">Resumen del mes</h2>
-        <div class="tabla-wrap"><table class="tabla grilla con-nombre" id="tabla-asistencia-mes"></table></div>
-      </div>
-    </section>
-
     <!-- ======== Horas extra ======== -->
     <section id="vista-horas-extra" data-seccion hidden>
       <div class="vista-head">
@@ -363,17 +336,17 @@
 
     <!-- ======== Configuración (solo admin) ======== -->
     <section id="vista-configuracion" data-seccion hidden>
-      <div class="vista-head"><div><h1>Configuración</h1><p class="sub">Usuarios, sucursales, puestos, tipos de novedad y horarios.</p></div></div>
+      <div class="vista-head"><div><h1>Configuración</h1><p class="sub">Usuarios, sucursales, puestos y tipos de novedad.</p></div></div>
 
       <div class="caja">
         <h2>Usuarios</h2>
-        <div class="tabla-wrap"><table class="tabla"><thead><tr><th>Usuario</th><th>Rol y sucursal<span class="info" tabindex="0" role="img" aria-label="Admin: ve y carga todo, en todas las sucursales, y administra usuarios. Encargado: ve y carga novedades y asistencia solo de su sucursal, y no puede editar empleados." data-info="Admin: ve y carga todo, en todas las sucursales, y administra usuarios. Encargado: ve y carga novedades y asistencia solo de su sucursal, y no puede editar empleados."></span></th><th>Estado</th><th></th></tr></thead><tbody id="tabla-usuarios"></tbody></table></div>
+        <div class="tabla-wrap"><table class="tabla"><thead><tr><th>Usuario</th><th>Rol y sucursal<span class="info" tabindex="0" role="img" aria-label="Admin: ve y carga todo, en todas las sucursales, y administra usuarios. Encargado: ve y carga novedades solo de su sucursal, y no puede editar empleados." data-info="Admin: ve y carga todo, en todas las sucursales, y administra usuarios. Encargado: ve y carga novedades solo de su sucursal, y no puede editar empleados."></span></th><th>Estado</th><th></th></tr></thead><tbody id="tabla-usuarios"></tbody></table></div>
         <form class="form-grid" id="form-usuario" autocomplete="off" style="margin-top:14px; padding:14px 16px; background:var(--naranja-tenue); border:1px solid var(--linea); border-radius:12px">
           <div class="full"><strong style="font-size:14px">Nuevo usuario</strong></div>
           <div><label for="nu-nombre">Nombre</label><input id="nu-nombre" required></div>
           <div><label for="nu-email">Usuario (o email)</label><input id="nu-email" type="text" autocapitalize="off" spellcheck="false" required placeholder="ej: antonella"></div>
           <div><label for="nu-password">Contraseña inicial</label><input id="nu-password" type="text" minlength="8" required autocomplete="new-password"></div>
-          <div><label for="nu-rol">Rol<span class="info" tabindex="0" role="img" aria-label="Admin: ve y carga todo, en todas las sucursales, y administra usuarios. Encargado: ve y carga novedades y asistencia solo de su sucursal, y no puede editar empleados." data-info="Admin: ve y carga todo, en todas las sucursales, y administra usuarios. Encargado: ve y carga novedades y asistencia solo de su sucursal, y no puede editar empleados."></span></label>
+          <div><label for="nu-rol">Rol<span class="info" tabindex="0" role="img" aria-label="Admin: ve y carga todo, en todas las sucursales, y administra usuarios. Encargado: ve y carga novedades solo de su sucursal, y no puede editar empleados." data-info="Admin: ve y carga todo, en todas las sucursales, y administra usuarios. Encargado: ve y carga novedades solo de su sucursal, y no puede editar empleados."></span></label>
             <select id="nu-rol">
               <option value="encargado">Encargado (solo su sucursal)</option>
               <option value="admin">Admin (todo, administra usuarios)</option>
@@ -403,17 +376,6 @@
           </form>
           <p class="hint">Al renombrar un puesto se actualiza en todos los empleados que lo tienen. Los puestos no se borran: se desactivan y dejan de ofrecerse.</p>
         </div>
-      </div>
-
-      <div class="caja" style="margin-top:18px">
-        <h2>Horarios y minutos a favor<span class="info" tabindex="0" role="img" aria-label="Valen para todos los empleados que no tengan un valor propio en su ficha. La hora de entrada y de salida de cada sucursal se cambia en la tabla de Sucursales." data-info="Valen para todos los empleados que no tengan un valor propio en su ficha. La hora de entrada y de salida de cada sucursal se cambia en la tabla de Sucursales."></span></h2>
-        <form class="filtros" id="form-horarios" style="margin:0">
-          <div><label for="hz-entrada">Minutos antes de la entrada<span class="info" tabindex="0" role="img" aria-label="Cuántos minutos antes de su hora de entrada tiene que llegar un empleado para que se le cuenten a favor. Los minutos cuentan desde que llegó hasta su hora de entrada. Por defecto 30." data-info="Cuántos minutos antes de su hora de entrada tiene que llegar un empleado para que se le cuenten a favor. Los minutos cuentan desde que llegó hasta su hora de entrada. Por defecto 30."></span></label><input id="hz-entrada" type="number" min="0" step="1" inputmode="numeric" required style="width:110px"></div>
-          <div><label for="hz-salida">Minutos después de la salida<span class="info" tabindex="0" role="img" aria-label="Cuántos minutos después de su hora de salida tiene que irse un empleado para que se le cuenten a favor. Por defecto 10." data-info="Cuántos minutos después de su hora de salida tiene que irse un empleado para que se le cuenten a favor. Por defecto 10."></span></label><input id="hz-salida" type="number" min="0" step="1" inputmode="numeric" required style="width:110px"></div>
-          <div><label for="hz-modo">Qué minutos se cuentan<span class="info" tabindex="0" role="img" aria-label="Todos: cuando llega al mínimo se cuentan todos los minutos (con un mínimo de 30, quien llega 40 minutos antes suma 40). Solo el excedente: se cuentan únicamente los minutos que pasan del mínimo (suma 10)." data-info="Todos: cuando llega al mínimo se cuentan todos los minutos (con un mínimo de 30, quien llega 40 minutos antes suma 40). Solo el excedente: se cuentan únicamente los minutos que pasan del mínimo (suma 10)."></span></label><select id="hz-modo"><option value="todo">Todos, al llegar al mínimo</option><option value="excedente">Solo los que pasan del mínimo</option></select></div>
-          <button class="btn-sec primario" type="submit">Guardar</button>
-        </form>
-        <p class="hint">Un empleado con otro horario o con otros mínimos se configura en su ficha (Empleados → Editar datos).</p>
       </div>
 
       <div class="caja" style="margin-top:18px">
@@ -475,9 +437,6 @@
         <div><label for="em-jornada">Jornada (horas por día)<span class="info" tabindex="0" role="img" aria-label="Horas de trabajo por día según el contrato. Ej.: 8 para jornada completa, 4 para media jornada." data-info="Horas de trabajo por día según el contrato. Ej.: 8 para jornada completa, 4 para media jornada."></span></label><input id="em-jornada" type="number" min="0" max="24" step="0.5"></div>
         <div><label for="em-entrada">Hora de entrada<span class="info" tabindex="0" role="img" aria-label="Solo si este empleado entra a otra hora que el resto de su sucursal. Si se deja vacía, se usa la hora de entrada de la sucursal (Configuración → Sucursales). Con ella se calculan los minutos de cada llegada tarde." data-info="Solo si este empleado entra a otra hora que el resto de su sucursal. Si se deja vacía, se usa la hora de entrada de la sucursal (Configuración → Sucursales). Con ella se calculan los minutos de cada llegada tarde."></span></label><input id="em-entrada" type="time"></div>
         <div><label for="em-codigo">N.º de cliente<span class="info" tabindex="0" role="img" aria-label="Número de este empleado en el sistema de gestión (cuenta corriente). Se completa solo al importar la planilla de saldos; solo hace falta escribirlo para corregirlo." data-info="Número de este empleado en el sistema de gestión (cuenta corriente). Se completa solo al importar la planilla de saldos; solo hace falta escribirlo para corregirlo."></span></label><input id="em-codigo" inputmode="numeric" placeholder="ej: 4489"></div>
-        <div><label for="em-salida">Hora de salida<span class="info" tabindex="0" role="img" aria-label="Solo si este empleado sale a otra hora que el resto de su sucursal. Si se deja vacía, se usa la hora de salida de la sucursal (Configuración → Sucursales)." data-info="Solo si este empleado sale a otra hora que el resto de su sucursal. Si se deja vacía, se usa la hora de salida de la sucursal (Configuración → Sucursales)."></span></label><input id="em-salida" type="time"></div>
-        <div><label for="em-min-entrada">Mínimo antes de la entrada (min)<span class="info" tabindex="0" role="img" aria-label="Minutos de anticipación para que cuenten a favor. Dejalo vacío para usar el general (Configuración → Horarios y minutos a favor)." data-info="Minutos de anticipación para que cuenten a favor. Dejalo vacío para usar el general (Configuración → Horarios y minutos a favor)."></span></label><input id="em-min-entrada" type="number" min="0" step="1" inputmode="numeric" placeholder="general"></div>
-        <div><label for="em-min-salida">Mínimo después de la salida (min)<span class="info" tabindex="0" role="img" aria-label="Minutos después de su hora de salida para que cuenten a favor. Dejalo vacío para usar el general." data-info="Minutos después de su hora de salida para que cuenten a favor. Dejalo vacío para usar el general."></span></label><input id="em-min-salida" type="number" min="0" step="1" inputmode="numeric" placeholder="general"></div>
         <div><label for="em-ingreso">Fecha de ingreso</label><input id="em-ingreso" type="date"></div>
         <div class="full"><h2 style="margin:14px 0 0">Datos personales</h2></div>
         <div><label for="em-dni">DNI</label><input id="em-dni" inputmode="numeric"></div>
@@ -662,27 +621,26 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <!-- Configuración. Los ?v= obligan al navegador a bajar la versión nueva:
      al cambiar cualquier CSS/JS, subir el número en TODAS las líneas. -->
-<script src="js/config.js?v=20261031.14"></script>
+<script src="js/config.js?v=20261103.1"></script>
 <!-- Lógica (sin pantalla) -->
-<script src="js/utils.js?v=20261031.14"></script>
-<script src="js/calculos.js?v=20261031.14"></script>
-<script src="js/api.js?v=20261031.14"></script>
+<script src="js/utils.js?v=20261103.1"></script>
+<script src="js/calculos.js?v=20261103.1"></script>
+<script src="js/api.js?v=20261103.1"></script>
 <!-- Vistas (pantalla) -->
-<script src="js/vistas/acceso.js?v=20261031.14"></script>
-<script src="js/vistas/ficha.js?v=20261031.14"></script>
-<script src="js/vistas/tablero.js?v=20261031.14"></script>
-<script src="js/vistas/empleados.js?v=20261031.14"></script>
-<script src="js/vistas/novedades.js?v=20261031.14"></script>
-<script src="js/vistas/vacaciones.js?v=20261031.14"></script>
-<script src="js/vistas/asistencia.js?v=20261031.14"></script>
-<script src="js/vistas/horas.js?v=20261031.14"></script>
-<script src="js/vistas/horas-extra.js?v=20261031.14"></script>
-<script src="js/vistas/importar-cc.js?v=20261031.14"></script>
-<script src="js/vistas/descuentos.js?v=20261031.14"></script>
-<script src="js/vistas/calendario.js?v=20261031.14"></script>
-<script src="js/vistas/compartidos.js?v=20261031.14"></script>
-<script src="js/vistas/configuracion.js?v=20261031.14"></script>
+<script src="js/vistas/acceso.js?v=20261103.1"></script>
+<script src="js/vistas/ficha.js?v=20261103.1"></script>
+<script src="js/vistas/tablero.js?v=20261103.1"></script>
+<script src="js/vistas/empleados.js?v=20261103.1"></script>
+<script src="js/vistas/novedades.js?v=20261103.1"></script>
+<script src="js/vistas/vacaciones.js?v=20261103.1"></script>
+<script src="js/vistas/horas.js?v=20261103.1"></script>
+<script src="js/vistas/horas-extra.js?v=20261103.1"></script>
+<script src="js/vistas/importar-cc.js?v=20261103.1"></script>
+<script src="js/vistas/descuentos.js?v=20261103.1"></script>
+<script src="js/vistas/calendario.js?v=20261103.1"></script>
+<script src="js/vistas/compartidos.js?v=20261103.1"></script>
+<script src="js/vistas/configuracion.js?v=20261103.1"></script>
 <!-- Arranque -->
-<script src="js/main.js?v=20261031.14"></script>
+<script src="js/main.js?v=20261103.1"></script>
 </body>
 </html>

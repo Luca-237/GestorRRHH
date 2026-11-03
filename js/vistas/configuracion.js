@@ -1,6 +1,6 @@
 // =====================================================================
 //  Vista: Configuración (solo admin). Usuarios, sucursales, tipos de
-//  novedad y horarios (entrada, salida y minutos a favor).
+//  novedad.
 // =====================================================================
 (function (R) {
   const { $, esc, norm, toast, aEmail, aUsuario, info } = R.util;
@@ -77,11 +77,10 @@
   // ---------- Catálogos ----------
   function pintarCatalogos() {
     const s = R.estado.sucursales;
-    $("tabla-sucursales").innerHTML = `<thead><tr><th>Sucursal</th><th class="num">Empleados</th><th class="num">Entrada${info("Hora de entrada de la sucursal: con ella se calculan los minutos de cada llegada tarde. Si un empleado tiene su propia hora de entrada (en su ficha), manda la de él. Al cambiarla, se recalculan solas las llegadas tarde ya cargadas.")}</th><th class="num">Salida${info("Hora de salida de la sucursal: con ella se cuentan los minutos a favor de quienes se quedan después. Si un empleado tiene la suya propia (en su ficha), manda la de él.")}</th><th></th></tr></thead><tbody>${s.map(x => `
+    $("tabla-sucursales").innerHTML = `<thead><tr><th>Sucursal</th><th class="num">Empleados</th><th class="num">Entrada${info("Hora de entrada de la sucursal: con ella se calculan los minutos de cada llegada tarde. Si un empleado tiene su propia hora de entrada (en su ficha), manda la de él. Al cambiarla, se recalculan solas las llegadas tarde ya cargadas.")}</th><th></th></tr></thead><tbody>${s.map(x => `
       <tr class="${x.activa ? "" : "inactivo"}"><td>${esc(x.nombre)}</td>
       <td class="num">${R.estado.empleados.filter(e => e.sucursal_id === x.id && e.activo).length}</td>
       <td class="num"><input type="time" value="${esc((x.hora_entrada || "09:00").slice(0, 5))}" data-sucursal-entrada="${x.id}" aria-label="Hora de entrada de ${esc(x.nombre)}" style="width:auto; padding:4px 6px"></td>
-      <td class="num"><input type="time" value="${esc((x.hora_salida || "18:00").slice(0, 5))}" data-sucursal-salida="${x.id}" aria-label="Hora de salida de ${esc(x.nombre)}" style="width:auto; padding:4px 6px"></td>
       <td><div class="acciones-fila">
         <button type="button" class="link" data-sucursal-renombrar="${x.id}">Renombrar</button>
         <button type="button" class="link" data-sucursal-activa="${x.id}">${x.activa ? "Desactivar" : "Activar"}</button>
@@ -95,10 +94,6 @@
         <button type="button" class="link" data-puesto-activo="${p.id}">${p.activo ? "Desactivar" : "Activar"}</button>
       </div></td></tr>`).join("") || `<tr><td colspan="3" class="vacio">No hay puestos.</td></tr>`}</tbody>`;
 
-    const hz = R.estado.horarios || {};
-    $("hz-entrada").value = hz.extra_entrada_min ?? R.calc.HORARIO_POR_DEFECTO.extraEntrada;
-    $("hz-salida").value = hz.extra_salida_min ?? R.calc.HORARIO_POR_DEFECTO.extraSalida;
-    $("hz-modo").value = hz.modo_extra || R.calc.HORARIO_POR_DEFECTO.modo;
 
     const unidades = { dias: "Días", horas: "Horas", minutos: "Minutos", pesos: "Pesos ($)", registro: "Solo registro" };
     const anioActual = new Date().getFullYear();
@@ -184,13 +179,6 @@
       e.preventDefault();
       conCatalogos(R.api.feriados.crear($("nf-fecha").value, $("nf-desc").value), "Feriado agregado.").then(() => $("form-feriado").reset());
     });
-    $("form-horarios").addEventListener("submit", async e => {
-      e.preventDefault();
-      try {
-        R.estado.horarios = await R.api.horarios.actualizar({ extra_entrada_min: Number($("hz-entrada").value), extra_salida_min: Number($("hz-salida").value), modo_extra: $("hz-modo").value });
-        toast("Horarios guardados. Los minutos de la planilla de asistencia se recalculan con estos valores.");
-      } catch (err) { toast(err.message, "error", 6000); }
-    });
     $("form-tipo").addEventListener("submit", e => {
       e.preventDefault();
       const nombre = $("nt-nombre").value.trim();
@@ -245,11 +233,6 @@
         e.target.value = (s.hora_entrada || "09:00").slice(0, 5); return;
       }
       conCatalogos(R.api.sucursales.actualizar(id, { hora_entrada: e.target.value }), "Hora de entrada actualizada. Las llegadas tarde se recalcularon.");
-    });
-    $("tabla-sucursales").addEventListener("change", e => {
-      const id = Number(e.target.dataset.sucursalSalida);
-      if (!id || !e.target.value) return;
-      conCatalogos(R.api.sucursales.actualizar(id, { hora_salida: e.target.value }), "Hora de salida actualizada.");
     });
     $("tabla-tipos").addEventListener("change", async e => {
       const clave = e.target.dataset.tipoColor;

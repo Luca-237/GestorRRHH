@@ -21,8 +21,8 @@ Los permisos los aplica la **base** (RLS), no la página: aunque alguien modifiq
 - **Empleados:** lista con búsqueda; alta y edición (admin). Solo datos laborales: **los datos de salud y de emergencia no van en este sistema.**
 - **Novedades:** lista por mes, tipo y empleado; carga y corrección; **Exportar para liquidación** (CSV para Excel con una fila por empleado y los totales del mes, para el estudio contable).
 - **Vacaciones:** días que corresponden por antigüedad (LCT art. 150), tomados, ajustes y saldo por período.
-- **Asistencia:** planilla por día con la hora de entrada y de salida de cada empleado; calcula solos los minutos de llegada tarde y los minutos a favor (llegar al menos 30 min antes de la entrada, o irse 10 min o más después de la salida; los mínimos y el modo "todos los minutos / solo el excedente" se cambian en Configuración, y por empleado en su ficha). Incluye resumen del mes. Los horarios salen del empleado, si no de su sucursal.
 - **Calendario:** rectángulos redondeados de color por ausencia o evento, como Google Calendar (en celular, lista por día).
+- **Viaje:** novedad para cuando mandan a un empleado a una localidad cercana. Cuenta como ausencia del local (calendario y "hoy no están") y no descuenta vacaciones.
 - **Modelo v2 (30/10/2026), adaptado a la planilla de Antonella "RRHH - Novedades Laborales v2":**
   - **Empleados:** legajo automático (últimos 3 del DNI + inicial del nombre + inicial del apellido, como en la planilla), sector, hora de entrada, fecha de nacimiento, email, dirección, obra social, banco, contacto de emergencia y motivo de baja. Los ven todos los usuarios con acceso a esa sucursal.
   - **Alta y baja** quedan registradas solas como novedad (al cargar un empleado y al desactivarlo).
@@ -84,3 +84,7 @@ Los datos del modo demo son **inventados** y se pierden al recargar. El modo dem
 - La librería de lectura (`js/lib/xlsx.full.min.js`, SheetJS 0.18.5) se baja solo al elegir un archivo.
 
 - **Cuenta de horas → "Dejar todo en cero" (admin):** por cada empleado que debe horas (de todas las sucursales) registra una devolución por lo que debe, para reiniciar la cuenta. No borra nada: las deudas quedan en el historial.
+
+
+## Limpieza del 2026-11-03
+- Cuenta de horas en cero; vacaciones de períodos anteriores a 2026 borradas (novedades, liquidaciones y ajustes); planilla de asistencia eliminada (tablas, horas de salida y mínimos). La hora de **entrada** se conserva para las llegadas tarde. Migración `20261103000000_limpieza_viaje.sql`. El selector de período de vacaciones ya no ofrece años anteriores.

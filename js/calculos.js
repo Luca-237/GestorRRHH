@@ -218,41 +218,6 @@
     return res;
   }
 
-  // ---------- Asistencia: horarios, llegadas tarde y minutos a favor ----------
-  const HORARIO_POR_DEFECTO = { entrada: "09:00", salida: "18:00", extraEntrada: 30, extraSalida: 10, modo: "todo" };
-  const hhmm = h => (h ? String(h).slice(0, 5) : null);
-
-  // Horario de un empleado. Entrada y salida: las suyas, si no las de su sucursal, si no las de por defecto.
-  // Umbrales: los suyos, si no los generales (Configuración → Horarios y minutos a favor).
-  function horarioDe(empleado, estado = R.estado) {
-    const suc = empleado && ((estado && estado.sucursales) || []).find(x => x.id === empleado.sucursal_id);
-    const gen = (estado && estado.horarios) || {};
-    const num = (a, b, c) => [a, b, c].find(v => v !== null && v !== undefined && v !== "" && !isNaN(Number(v)));
-    return {
-      entrada: hhmm(empleado && empleado.hora_entrada) || hhmm(suc && suc.hora_entrada) || HORARIO_POR_DEFECTO.entrada,
-      salida: hhmm(empleado && empleado.hora_salida) || hhmm(suc && suc.hora_salida) || HORARIO_POR_DEFECTO.salida,
-      extraEntrada: Number(num(empleado && empleado.extra_entrada_min, gen.extra_entrada_min, HORARIO_POR_DEFECTO.extraEntrada)),
-      extraSalida: Number(num(empleado && empleado.extra_salida_min, gen.extra_salida_min, HORARIO_POR_DEFECTO.extraSalida)),
-      modo: gen.modo_extra || HORARIO_POR_DEFECTO.modo,
-      propio: !!(empleado && (empleado.hora_entrada || empleado.hora_salida || empleado.extra_entrada_min != null || empleado.extra_salida_min != null)),
-    };
-  }
-
-  // Minutos de un día a partir de lo que marcó el empleado:
-  //  · tarde: minutos que llegó después de su hora de entrada.
-  //  · extraEntrada: si llegó 'extraEntrada' minutos o más ANTES de su hora de entrada, esos minutos
-  //    (desde que llegó hasta la hora de entrada de la jornada común).
-  //  · extraSalida: si salió 'extraSalida' minutos o más DESPUÉS de su hora de salida, esos minutos.
-  //  En modo "todo" se cuentan todos los minutos una vez superado el umbral; en "excedente", solo los que lo pasan.
-  function minutosAsistencia(entrada, salida, horario) {
-    const e = aMinutos(entrada), sa = aMinutos(salida), he = aMinutos(horario.entrada), hs = aMinutos(horario.salida);
-    const contar = (min, umbral) => min >= umbral && min > 0 ? (horario.modo === "excedente" ? min - umbral : min) : 0;
-    const tarde = e != null ? Math.max(0, e - he) : 0;
-    const extraEntrada = e != null ? contar(Math.max(0, he - e), horario.extraEntrada) : 0;
-    const extraSalida = sa != null ? contar(Math.max(0, sa - hs), horario.extraSalida) : 0;
-    return { tarde, extraEntrada, extraSalida, aFavor: extraEntrada + extraSalida };
-  }
-
   // ---------- Planilla de saldos de cuenta corriente (reporte del sistema de gestión) ----------
   // "160,752.94" (o "1.234,56") -> 160752.94
   const numeroDeReporte = s => {
@@ -307,5 +272,5 @@
     horasDeNovedad, cuentaHoras, fmtHoras, JORNADA_POR_DEFECTO,
     fmtPesos, cantidadTexto, minutosTarde, recargoSugerido, HORA_ENTRADA_POR_DEFECTO,
     enHoras, sumarHoras, horaEntrada, horasEntre, revisarHorasExtra, periodoBloqueado,
-    HORARIO_POR_DEFECTO, horarioDe, minutosAsistencia, leerSaldosCuentaCorriente, emparejarEmpleado };
+    leerSaldosCuentaCorriente, emparejarEmpleado };
 })(window.RRHH);

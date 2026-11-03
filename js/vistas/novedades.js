@@ -207,7 +207,7 @@
     $("no-desc-mes").value = datos.liquidado_en && app().tipo(datos.tipo).descuenta_sueldo ? datos.liquidado_en.slice(0, 7) : "";
     $("no-liq-fecha").value = datos.tipo !== "horas_extra" && datos.liquidado_en ? datos.liquidado_en : "";
     const anio = R.calc.anioVacacionesDe(hoy());
-    $("no-anio").innerHTML = [anio + 1, anio, anio - 1, anio - 2].map(a => `<option value="${a}">Período ${a}</option>`).join("");
+    $("no-anio").innerHTML = [anio + 1, anio].map(a => `<option value="${a}">Período ${a}</option>`).join("");
     delete $("no-anio").dataset.manual;
     if (datos.anio_vacaciones) { $("no-anio").value = String(datos.anio_vacaciones); $("no-anio").dataset.manual = "1"; }
     $("no-certificado").checked = datos.con_certificado === true;

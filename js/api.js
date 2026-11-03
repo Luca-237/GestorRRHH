@@ -4,7 +4,7 @@
 //  (Para probar sin base: pruebas/api-falsa.js reemplaza este objeto.)
 // =====================================================================
 (function (R) {
-  const CAMPOS_EMPLEADO = ["apellido", "nombre", "legajo", "dni", "cuil", "sucursal_id", "puesto", "sector", "jornada_horas", "hora_entrada", "hora_salida", "extra_entrada_min", "extra_salida_min", "codigo_cliente",
+  const CAMPOS_EMPLEADO = ["apellido", "nombre", "legajo", "dni", "cuil", "sucursal_id", "puesto", "sector", "jornada_horas", "hora_entrada", "codigo_cliente",
     "fecha_ingreso", "fecha_egreso", "activo", "motivo_baja", "telefono", "email", "fecha_nacimiento", "direccion", "obra_social", "banco",
     "contacto_emergencia_nombre", "contacto_emergencia_tel", "notas"];
   const CAMPOS_NOVEDAD = ["empleado_id", "tipo", "fecha_desde", "fecha_hasta", "cantidad", "recargo",
@@ -61,7 +61,7 @@
       if (d[k] === undefined) return;
       let v = d[k];
       if (typeof v === "string") v = v.trim();
-      if (v === "" && /fecha|_id$|jornada|recargo|anio|cantidad|puesto|hora|liquidado|extra_|codigo/.test(k)) v = null;
+      if (v === "" && /fecha|_id$|jornada|recargo|anio|cantidad|puesto|hora|liquidado|codigo/.test(k)) v = null;
       out[k] = v;
     });
     return out;
@@ -194,27 +194,6 @@
     async eliminar(id) { chequear(await sb.from("vacaciones_ajustes").delete().eq("id", id)); },
   };
 
-  // ---------- Asistencia: hora de entrada y de salida de cada empleado por día ----------
-  const asistencia = {
-    entre: (desde, hasta, empleadoId) => todo(() => {
-      let q = sb.from("asistencia").select("*").gte("fecha", desde).lte("fecha", hasta);
-      if (empleadoId) q = q.eq("empleado_id", empleadoId);
-      return q.order("fecha");
-    }),
-    // Una fila por empleado y día: si ya existe se corrige
-    async guardar(d) {
-      return chequear(await sb.from("asistencia").upsert({ empleado_id: d.empleado_id, fecha: d.fecha, entrada: d.entrada || null, salida: d.salida || null, observacion: (d.observacion || "").trim() },
-        { onConflict: "empleado_id,fecha" }).select().single());
-    },
-    async eliminar(empleadoId, fecha) { chequear(await sb.from("asistencia").delete().eq("empleado_id", empleadoId).eq("fecha", fecha)); },
-  };
-
-  // ---------- Horarios generales y minutos a favor (una sola fila, la cambia el admin) ----------
-  const horarios = {
-    async obtener() { return chequear(await sb.from("ajustes_horarios").select("*").eq("id", 1).single()); },
-    async actualizar(d) { return chequear(await sb.from("ajustes_horarios").update(d).eq("id", 1).select().single()); },
-  };
-
   // ---------- Usuarios (Edge Function, solo admin) ----------
   const usuarios = {
     async llamar(accion, datos = {}) {
@@ -238,5 +217,5 @@
     resetearPassword: (id, password) => usuarios.llamar("resetear_password", { id, password }),
   };
 
-  R.api = { configurado, iniciar, auth, sucursales, puestos, tipos, empleados, novedades, liquidaciones, feriados, eventos, compartidos, periodos, ajustes, asistencia, horarios, usuarios };
+  R.api = { configurado, iniciar, auth, sucursales, puestos, tipos, empleados, novedades, liquidaciones, feriados, eventos, compartidos, periodos, ajustes, usuarios };
 })(window.RRHH);

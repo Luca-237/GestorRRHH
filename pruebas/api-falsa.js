@@ -14,15 +14,15 @@
   const espera = v => new Promise(ok => setTimeout(() => ok(copia(v)), 120));
 
   const sucursales = [
-    { id: 1, nombre: "Central", orden: 1, activa: true, hora_entrada: "09:00", hora_salida: "18:00" }, { id: 2, nombre: "Indarte", orden: 2, activa: true, hora_entrada: "09:30", hora_salida: "18:30" },
-    { id: 3, nombre: "Peatonal", orden: 3, activa: true, hora_entrada: "09:00", hora_salida: "18:00" }, { id: 4, nombre: "Chimola", orden: 4, activa: true, hora_entrada: "09:00", hora_salida: "18:00" },
+    { id: 1, nombre: "Central", orden: 1, activa: true, hora_entrada: "09:00" }, { id: 2, nombre: "Indarte", orden: 2, activa: true, hora_entrada: "09:30" },
+    { id: 3, nombre: "Peatonal", orden: 3, activa: true, hora_entrada: "09:00" }, { id: 4, nombre: "Chimola", orden: 4, activa: true, hora_entrada: "09:00" },
   ];
   const puestos = ["Vendedor B", "Auxiliar B", "Administrativo B", "Encargado", "Marketing"]
     .map((nombre, i) => ({ id: i + 1, nombre, orden: i + 1, activo: true }));
   const tipos = [
     ["vacaciones", "Vacaciones", "dias", true, true, "#e84e1b"], ["franco", "Franco", "dias", false, true, "#000000"],
     ["llegada_tarde", "Llegada tarde", "minutos", false, false, "#c63f12"], ["horas_extra", "Horas extra", "horas", false, false, "#3a3a3a"],
-    ["licencia_medica", "Licencia médica", "dias", false, true, "#8a8a8a"], ["falta", "Falta / inasistencia", "dias", false, true, "#b00020"],
+    ["licencia_medica", "Licencia médica", "dias", false, true, "#8a8a8a"], ["falta", "Falta / inasistencia", "dias", false, true, "#b00020"], ["viaje", "Viaje (enviado a otra localidad)", "dias", false, true, "#1f5f8b"],
     ["licencia_especial", "Licencia especial", "dias", false, true, "#5a5a5a"],
     ["permiso_horas", "Permiso de horas (a devolver)", "horas", false, false, "#7a4a2a", 1],
     ["dia_a_devolver", "Día pedido (a devolver)", "dias", false, true, "#a0522d", 1],
@@ -95,16 +95,6 @@
     cantidad: 0, observacion: "Falta injustificada automática — 3 llegadas tarde acumuladas", generada_por: terceraBruno.id, creado_en: new Date().toISOString() }));
   novedades.filter(n => n.tipo === "horas_extra").forEach((n, i) => { n.hora = i ? "16:00" : "08:00"; });
   const ajustes = [{ id: nuevoId(), empleado_id: 9, anio: R.calc.anioVacacionesDe(h), dias: 3, motivo: "Arrastre período anterior" }];
-  // Asistencia inventada: los últimos días hábiles de algunos empleados (uno llega tarde, otro llega antes y se queda más)
-  const horarios = { id: 1, extra_entrada_min: 30, extra_salida_min: 10, modo_extra: "todo" };
-  const asistencia = [];
-  [[1, "08:52", "18:03"], [2, "09:14", "18:00"], [3, "08:25", "18:20"], [4, "09:00", "18:09"], [5, "09:40", "18:00"], [6, "08:31", "18:10"]].forEach(([empleado_id, entrada, salida]) => {
-    for (let k = 0; k < 3; k++) {
-      const dia = sumarDias(h, -k), dow = new Date(dia + "T00:00:00Z").getUTCDay();
-      if (dow === 0 || dow === 6) continue;
-      asistencia.push({ id: nuevoId(), empleado_id, fecha: dia, entrada, salida, observacion: "" });
-    }
-  });
   const perfil = comoEncargado
     ? { id: "demo-enc", email: "encargado@demo", nombre: "Encargado Demo", rol: "encargado", sucursal_id: 1, activo: true }
     : { id: "demo", email: "admin@demo", nombre: "Admin Demo", rol: "admin", sucursal_id: null, activo: true };
@@ -237,20 +227,6 @@
       delAnio: anio => espera(ajustes.filter(a => a.anio === anio && ve(a.empleado_id))),
       crear: async d => { const a = { id: nuevoId(), ...d }; ajustes.push(a); return copia(a); },
       eliminar: async id => { ajustes.splice(ajustes.findIndex(a => a.id === id), 1); },
-    },
-    asistencia: {
-      entre: (desde, hasta, empleadoId) => espera(asistencia.filter(a => a.fecha >= desde && a.fecha <= hasta && ve(a.empleado_id) && (!empleadoId || a.empleado_id === empleadoId))),
-      guardar: async d => {
-        let a = asistencia.find(x => x.empleado_id === d.empleado_id && x.fecha === d.fecha);
-        if (!a) { a = { id: nuevoId(), empleado_id: d.empleado_id, fecha: d.fecha }; asistencia.push(a); }
-        Object.assign(a, { entrada: d.entrada || null, salida: d.salida || null, observacion: d.observacion || "" });
-        return copia(a);
-      },
-      eliminar: async (empleadoId, fecha) => { const k = asistencia.findIndex(x => x.empleado_id === empleadoId && x.fecha === fecha); if (k >= 0) asistencia.splice(k, 1); },
-    },
-    horarios: {
-      obtener: async () => copia(horarios),
-      actualizar: async d => { Object.assign(horarios, d); return copia(horarios); },
     },
     usuarios: {
       listar: () => espera(usuarios),

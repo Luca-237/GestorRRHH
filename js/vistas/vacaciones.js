@@ -14,7 +14,7 @@
   async function mostrar() {
     const actual = R.calc.anioVacacionesDe(hoy());
     if (!$("vacaciones-anio").options.length) {
-      $("vacaciones-anio").innerHTML = [actual + 1, actual, actual - 1, actual - 2, actual - 3]
+      $("vacaciones-anio").innerHTML = [actual + 1, actual]
         .map(a => `<option value="${a}" ${a === actual ? "selected" : ""}>${a} (oct ${a} – abr ${a + 1})</option>`).join("");
     }
     const anio = anioElegido();

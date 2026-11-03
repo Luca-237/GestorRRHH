@@ -10,7 +10,6 @@
     empleados: () => R.vistaEmpleados,
     novedades: () => R.vistaNovedades,
     vacaciones: () => R.vistaVacaciones,
-    asistencia: () => R.vistaAsistencia,
     horas: () => R.vistaHoras,
     descuentos: () => R.vistaDescuentos,
     calendario: () => R.vistaCalendario,
@@ -70,8 +69,6 @@
       // Puestos compartidos: si la tabla todavía no existe (migración sin correr), la app sigue andando
       R.estado.compartidos = await R.api.compartidos.listar().catch(() => []);
       R.estado.periodos = await R.api.periodos.listar().catch(() => []);
-      // Horarios generales: si la migración de asistencia todavía no se corrió, se usan 30 y 10 minutos
-      R.estado.horarios = await R.api.horarios.obtener().catch(() => null);
       pintarFiltroSucursal();
     },
     // Vuelve a dibujar la sección abierta (después de guardar algo)
@@ -143,7 +140,7 @@
     vistaActual = null;
   }
 
-  const estadoInicial = () => ({ perfil: null, sucursales: [], puestos: [], feriados: [], compartidos: [], periodos: [], tipos: [], horarios: null, empleados: [], filtroSucursal: "" });
+  const estadoInicial = () => ({ perfil: null, sucursales: [], puestos: [], feriados: [], compartidos: [], periodos: [], tipos: [], empleados: [], filtroSucursal: "" });
 
   async function arrancar() {
     R.estado = estadoInicial();
