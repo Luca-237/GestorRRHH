@@ -9,7 +9,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23e84e1b'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/app.css?v=20261106.6">
+<link rel="stylesheet" href="css/app.css?v=20261106.7">
+<!-- El color de fondo elegido se aplica después de la hoja de estilos (para pisarla) y antes de dibujar, así no parpadea -->
+<script src="js/color.js?v=20261106.7"></script>
+<script>try { ColorFondo.aplicar(ColorFondo.leer()); } catch (e) {}</script>
 </head>
 <body>
 <script>
@@ -336,7 +339,17 @@
 
     <!-- ======== Configuración (solo admin) ======== -->
     <section id="vista-configuracion" data-seccion hidden>
-      <div class="vista-head"><div><h1>Configuración</h1><p class="sub">Usuarios, sucursales, puestos y tipos de novedad.</p></div></div>
+      <div class="vista-head"><div><h1>Configuración</h1><p class="sub">Apariencia, usuarios, sucursales, puestos y tipos de novedad.</p></div></div>
+
+      <div class="caja">
+        <h2>Color de fondo<span class="info" tabindex="0" role="img" aria-label="Elegí el color de fondo del programa; el resto de los tonos (bordes, encabezados, fines de semana del calendario, textos) se ajusta solo. Es personal: se guarda en este navegador y no cambia lo que ven los demás." data-info="Elegí el color de fondo del programa; el resto de los tonos (bordes, encabezados, fines de semana del calendario, textos) se ajusta solo. Es personal: se guarda en este navegador y no cambia lo que ven los demás."></span></h2>
+        <div class="cfg-fila">
+          <div class="cfg-sugeridos" id="cfg-sugeridos"></div>
+          <label class="cfg-propio" for="cfg-color"><input type="color" id="cfg-color" aria-label="Elegir otro color"> Otro color <strong id="cfg-hex"></strong></label>
+          <button type="button" class="btn-sec" id="cfg-original" hidden>Volver al durazno de siempre</button>
+        </div>
+        <p class="hint" id="cfg-aviso" hidden></p>
+      </div>
 
       <div class="caja">
         <h2>Usuarios</h2>
@@ -628,26 +641,26 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <!-- Configuración. Los ?v= obligan al navegador a bajar la versión nueva:
      al cambiar cualquier CSS/JS, subir el número en TODAS las líneas. -->
-<script src="js/config.js?v=20261106.6"></script>
+<script src="js/config.js?v=20261106.7"></script>
 <!-- Lógica (sin pantalla) -->
-<script src="js/utils.js?v=20261106.6"></script>
-<script src="js/calculos.js?v=20261106.6"></script>
-<script src="js/api.js?v=20261106.6"></script>
+<script src="js/utils.js?v=20261106.7"></script>
+<script src="js/calculos.js?v=20261106.7"></script>
+<script src="js/api.js?v=20261106.7"></script>
 <!-- Vistas (pantalla) -->
-<script src="js/vistas/acceso.js?v=20261106.6"></script>
-<script src="js/vistas/ficha.js?v=20261106.6"></script>
-<script src="js/vistas/tablero.js?v=20261106.6"></script>
-<script src="js/vistas/empleados.js?v=20261106.6"></script>
-<script src="js/vistas/novedades.js?v=20261106.6"></script>
-<script src="js/vistas/vacaciones.js?v=20261106.6"></script>
-<script src="js/vistas/horas.js?v=20261106.6"></script>
-<script src="js/vistas/horas-extra.js?v=20261106.6"></script>
-<script src="js/vistas/importar-cc.js?v=20261106.6"></script>
-<script src="js/vistas/descuentos.js?v=20261106.6"></script>
-<script src="js/vistas/calendario.js?v=20261106.6"></script>
-<script src="js/vistas/compartidos.js?v=20261106.6"></script>
-<script src="js/vistas/configuracion.js?v=20261106.6"></script>
+<script src="js/vistas/acceso.js?v=20261106.7"></script>
+<script src="js/vistas/ficha.js?v=20261106.7"></script>
+<script src="js/vistas/tablero.js?v=20261106.7"></script>
+<script src="js/vistas/empleados.js?v=20261106.7"></script>
+<script src="js/vistas/novedades.js?v=20261106.7"></script>
+<script src="js/vistas/vacaciones.js?v=20261106.7"></script>
+<script src="js/vistas/horas.js?v=20261106.7"></script>
+<script src="js/vistas/horas-extra.js?v=20261106.7"></script>
+<script src="js/vistas/importar-cc.js?v=20261106.7"></script>
+<script src="js/vistas/descuentos.js?v=20261106.7"></script>
+<script src="js/vistas/calendario.js?v=20261106.7"></script>
+<script src="js/vistas/compartidos.js?v=20261106.7"></script>
+<script src="js/vistas/configuracion.js?v=20261106.7"></script>
 <!-- Arranque -->
-<script src="js/main.js?v=20261106.6"></script>
+<script src="js/main.js?v=20261106.7"></script>
 </body>
 </html>

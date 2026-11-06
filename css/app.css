@@ -204,6 +204,16 @@ dialog .tabla-wrap { max-height:60vh; }
 .buscar-wrap .ico { position:absolute; left:11px; top:50%; width:16px; height:16px; transform:translateY(-50%); color:var(--naranja); pointer-events:none; }
 .buscar-wrap input { padding-left:35px; }
 
+/* ---------- Color de fondo (Configuración) ---------- */
+.cfg-fila { display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-top:4px; }
+.cfg-sugeridos { display:flex; gap:10px; flex-wrap:wrap; }
+.cfg-color { width:36px; height:36px; padding:0; border:0; border-radius:50%; background:var(--c); cursor:pointer; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12), var(--sombra); transition:transform var(--t-rapida) var(--ease), box-shadow var(--t-rapida) var(--ease); }
+.cfg-color:hover { transform:scale(1.08); }
+.cfg-color[aria-pressed="true"] { box-shadow:inset 0 0 0 1px rgba(0,0,0,.12), 0 0 0 3px var(--blanco), 0 0 0 5px var(--negro); }
+.cfg-propio { display:inline-flex; align-items:center; gap:10px; margin:0; padding:5px 14px 5px 6px; border-radius:var(--r-pill); background:var(--blanco); box-shadow:var(--sombra); font-size:14px; color:var(--texto); cursor:pointer; }
+.cfg-propio input[type=color] { width:30px; height:30px; padding:0; border:0; border-radius:50%; overflow:hidden; cursor:pointer; background:none; }
+.cfg-propio strong { margin-left:4px; font:600 12px/1 var(--display); letter-spacing:.04em; color:var(--muted); }
+
 /* ---------- Diálogos ---------- */
 dialog.dlg { width:min(640px, calc(100vw - 32px)); max-height:calc(100vh - 40px); border:0; border-radius:var(--r-lg); padding:0; color:var(--texto); background:var(--blanco); box-shadow:var(--sombra-alta); }
 dialog.dlg.ancho { width:min(920px, calc(100vw - 32px)); }
@@ -273,8 +283,8 @@ dialog.dlg-pregunta { width:min(440px, calc(100vw - 32px)); }
 .cal-dia { grid-row:1 / -1; padding:5px 6px 0; border-right:1px solid var(--linea); cursor:pointer; transition:background-color var(--t-rapida) var(--ease); min-width:0; }
 .cal-dia:nth-child(7) { border-right:0; }
 .cal-dia:hover { background:var(--naranja-tenue); }
-.cal-dia.finde { background:#fffaf6; }
-.cal-dia.fuera { background:#fbf7f4; }
+.cal-dia.finde { background:var(--dia-finde, #fffaf6); }
+.cal-dia.fuera { background:var(--dia-fuera, #fbf7f4); }
 .cal-dia.fuera .cal-num { color:var(--tenue); }
 .cal-dia.choque { box-shadow:inset 0 0 0 2px var(--alerta); }
 .cal-num { display:flex; align-items:center; gap:6px; height:22px; font:600 13px/1.2 var(--display); color:var(--negro); margin:0 2px; }
