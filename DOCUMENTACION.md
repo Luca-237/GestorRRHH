@@ -88,3 +88,5 @@ Los datos del modo demo son **inventados** y se pierden al recargar. El modo dem
 
 ## Limpieza del 2026-11-03
 - Cuenta de horas en cero; vacaciones de períodos anteriores a 2026 borradas (novedades, liquidaciones y ajustes); planilla de asistencia eliminada (tablas, horas de salida y mínimos). La hora de **entrada** se conserva para las llegadas tarde. Migración `20261103000000_limpieza_viaje.sql`. El selector de período de vacaciones ya no ofrece años anteriores.
+
+- **Feriados desde el calendario (admin):** al hacer clic en un día se abre su detalle; tildando "Feriado o día no laborable" (con un nombre opcional) queda marcado como el resto de los feriados, en toda la página. Destildando se quita. Los encargados ven el feriado pero no lo pueden cambiar.

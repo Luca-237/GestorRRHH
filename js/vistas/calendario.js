@@ -156,9 +156,15 @@
       ...x.ausencias.map(n => { const emp = app().empleado(n.empleado_id), t = app().tipo(n.tipo);
         return `<li class="clic" data-empleado="${n.empleado_id}"><span>${esc(nombreEmpleado(emp))}<br><small>${esc(app().sucursalNombre(emp && emp.sucursal_id))} · ${fmtCorta(n.fecha_desde)}${n.fecha_hasta !== n.fecha_desde ? " al " + fmtCorta(n.fecha_hasta) : ""}</small></span>${app().chipTipo(n.tipo)}</li>`; }),
     ];
-    $("dia-cuerpo").innerHTML = `${x.feriado ? `<p class="hint">Feriado: ${esc(x.feriado.descripcion)}</p>` : ""}
+    // Feriado o día no laborable: lo marca solo el admin; los demás lo ven
+    const feriado = app().esAdmin() ? `<form id="dia-feriado" data-fecha="${d}" class="caja" style="margin:0 0 14px">
+        <label class="check"><input type="checkbox" id="dia-feriado-check" ${x.feriado ? "checked" : ""}> Feriado o día no laborable</label>
+        <div class="filtros" style="margin:10px 0 0"><div style="flex:1; min-width:200px"><label for="dia-feriado-desc">Nombre</label><input id="dia-feriado-desc" maxlength="80" value="${esc(x.feriado ? x.feriado.descripcion : "")}" placeholder="ej: Feriado puente, Día no laborable" ${x.feriado ? "" : "disabled"}></div>
+        <button type="submit" class="btn-sec">Guardar</button></div></form>`
+      : (x.feriado ? `<p class="hint">Feriado: ${esc(x.feriado.descripcion)}</p>` : "");
+    $("dia-cuerpo").innerHTML = `${feriado}
       <ul class="lista-simple">${lista.join("") || `<li class="vacio">Nada cargado este día.</li>`}</ul>
-      <div class="dlg-pie"><button type="button" class="btn-sec primario" data-nuevo-evento="${d}">Agregar evento este día</button></div>`;
+      ${puedeCargar() ? `<div class="dlg-pie"><button type="button" class="btn-sec primario" data-nuevo-evento="${d}">Agregar evento este día</button></div>` : ""}`;
     if (!$("dlg-dia").open) $("dlg-dia").showModal();
   }
 
@@ -231,7 +237,23 @@
     const nuevo = e.target.closest("[data-nuevo-evento]");
     if (nuevo) return abrirEvento({ fecha_desde: nuevo.dataset.nuevoEvento });
     const dia = e.target.closest(".cal-dia");
-    if (dia && puedeCargar()) abrirEvento({ fecha_desde: dia.dataset.fecha });
+    if (dia) abrirDia(dia.dataset.fecha);
+  }
+
+  // Marcar o desmarcar el día como feriado / no laborable (sale igual que el resto de feriados en toda la página)
+  async function guardarFeriado(ev) {
+    ev.preventDefault();
+    const form = ev.target.closest("#dia-feriado");
+    if (!form) return;
+    const fecha = form.dataset.fecha, marcado = $("dia-feriado-check").checked, existe = R.estado.feriados.some(f => f.fecha === fecha);
+    try {
+      if (marcado) await R.api.feriados.guardar(fecha, $("dia-feriado-desc").value.trim() || "Feriado");
+      else if (existe) await R.api.feriados.eliminar(fecha);
+      R.estado.feriados = await R.api.feriados.listar();
+    } catch (err) { return toast(err.message, "error", 6000); }
+    $("dlg-dia").close();
+    toast(marcado ? "Día marcado como feriado." : "El día ya no es feriado.");
+    mostrar();
   }
 
   function iniciar() {
@@ -244,6 +266,8 @@
     $("cal-ver-eventos").addEventListener("change", mostrar);
     $("cal-grilla").addEventListener("click", clic);
     $("dia-cuerpo").addEventListener("click", clic);
+    $("dia-cuerpo").addEventListener("change", e => { if (e.target.id === "dia-feriado-check") { $("dia-feriado-desc").disabled = !e.target.checked; if (e.target.checked) $("dia-feriado-desc").focus(); } });
+    $("dia-cuerpo").addEventListener("submit", guardarFeriado);
     $("form-evento").addEventListener("submit", guardarEvento);
     $("evt-eliminar").addEventListener("click", eliminarEvento);
     $("evt-desde").addEventListener("change", () => { if (!$("evt-hasta").value || $("evt-hasta").value < $("evt-desde").value) $("evt-hasta").value = $("evt-desde").value; });

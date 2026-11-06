@@ -184,6 +184,8 @@
   const feriados = {
     listar: () => todo(() => sb.from("feriados").select("fecha, descripcion").order("fecha")),
     async crear(fecha, descripcion) { chequear(await sb.from("feriados").insert({ fecha, descripcion: descripcion.trim() })); },
+    // Crea el feriado o, si ya existe ese día, le cambia el nombre
+    async guardar(fecha, descripcion) { chequear(await sb.from("feriados").upsert({ fecha, descripcion: descripcion.trim() }, { onConflict: "fecha" })); },
     async eliminar(fecha) { chequear(await sb.from("feriados").delete().eq("fecha", fecha)); },
   };
 

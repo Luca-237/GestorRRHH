@@ -217,6 +217,7 @@
     },
     feriados: {
       listar: () => espera([...feriados].sort((a, b) => a.fecha.localeCompare(b.fecha))),
+      guardar: async (fecha, descripcion) => { const f = feriados.find(x => x.fecha === fecha); if (f) f.descripcion = descripcion; else feriados.push({ fecha, descripcion }); },
       crear: async (fecha, descripcion) => {
         if (feriados.some(f => f.fecha === fecha)) throw new Error("Ese feriado ya está cargado.");
         feriados.push({ fecha, descripcion });
