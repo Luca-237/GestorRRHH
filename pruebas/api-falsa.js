@@ -156,7 +156,7 @@
         if (d.tipo === "vacaciones") {
           const emp = empleados.find(x => x.id === d.empleado_id);
           const b = periodosDemo.find(p => (!p.sucursal_id || p.sucursal_id === emp.sucursal_id) && p.fecha_desde <= (d.fecha_hasta || d.fecha_desde) && p.fecha_hasta >= d.fecha_desde);
-          if (b) throw new Error(`Período sin vacaciones: del ${b.fecha_desde.split("-").reverse().join("/")} al ${b.fecha_hasta.split("-").reverse().join("/")} nadie puede tomarse vacaciones${b.motivo ? " (" + b.motivo + ")" : ""}.`);
+          if (b && !d.excepcion_bloqueo) throw new Error(`Período sin vacaciones: del ${b.fecha_desde.split("-").reverse().join("/")} al ${b.fecha_hasta.split("-").reverse().join("/")} nadie puede tomarse vacaciones${b.motivo ? " (" + b.motivo + ")" : ""}.`);
           for (const pc of compartidosDemo.filter(p => p.miembros.includes(d.empleado_id))) {
             const c = novedades.find(x => x.tipo === "vacaciones" && x.empleado_id !== d.empleado_id && pc.miembros.includes(x.empleado_id) && x.fecha_desde <= (d.fecha_hasta || d.fecha_desde) && x.fecha_hasta >= d.fecha_desde);
             if (c) { const e = empleados.find(x => x.id === c.empleado_id); throw new Error(`Puesto compartido "${pc.nombre}": ${e.nombre} ${e.apellido} está de vacaciones del ${c.fecha_desde.split("-").reverse().join("/")} al ${c.fecha_hasta.split("-").reverse().join("/")}. Solo uno puede estar de vacaciones a la vez.`); }

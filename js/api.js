@@ -9,6 +9,8 @@
     "contacto_emergencia_nombre", "contacto_emergencia_tel", "notas"];
   const CAMPOS_NOVEDAD = ["empleado_id", "tipo", "fecha_desde", "fecha_hasta", "cantidad", "recargo",
     "anio_vacaciones", "con_certificado", "observacion", "hora", "liquidado_en"];
+  // Solo se envía (y solo cuando es true) al cargar vacaciones como excepción en un período sin vacaciones
+  const CAMPOS_NOVEDAD_ESCRITURA = [...CAMPOS_NOVEDAD, "excepcion_bloqueo"];
   let sb = null;
 
   function configurado() {
@@ -130,8 +132,8 @@
     // Todas las de ciertos tipos, sin límite de fechas (para la cuenta de horas)
     deTipos: claves => claves.length ? todo(() => sb.from("novedades").select(COLS_NOVEDAD).in("tipo", claves).order("fecha_desde")) : Promise.resolve([]),
     deVacaciones: anio => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("anio_vacaciones", anio)),
-    async crear(d) { return chequear(await sb.from("novedades").insert(limpiar(d, CAMPOS_NOVEDAD)).select(COLS_NOVEDAD).single()); },
-    async actualizar(id, d) { return chequear(await sb.from("novedades").update(limpiar(d, CAMPOS_NOVEDAD)).eq("id", id).select(COLS_NOVEDAD).single()); },
+    async crear(d) { return chequear(await sb.from("novedades").insert(limpiar(d, CAMPOS_NOVEDAD_ESCRITURA)).select(COLS_NOVEDAD).single()); },
+    async actualizar(id, d) { return chequear(await sb.from("novedades").update(limpiar(d, CAMPOS_NOVEDAD_ESCRITURA)).eq("id", id).select(COLS_NOVEDAD).single()); },
     async eliminar(id) { chequear(await sb.from("novedades").delete().eq("id", id)); },
     // Falta que generó sola una llegada tarde (cada 3 acumuladas)
     async generadaPor(id) { return chequear(await sb.from("novedades").select(COLS_NOVEDAD).eq("generada_por", id).maybeSingle()); },

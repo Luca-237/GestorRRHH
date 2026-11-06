@@ -99,7 +99,7 @@
     // Vacaciones dentro de un período bloqueado: avisar antes de guardar (la base no las deja pasar)
     if (t.descuenta_vacaciones && d && h) {
       const b = R.calc.periodoBloqueado(d, h, app().empleado(Number($("no-empleado").value)));
-      if (b) $("no-dias").innerHTML = `${esc($("no-dias").textContent)} · <strong class="texto-alerta">Toca un período sin vacaciones (del ${fmtFecha(b.fecha_desde)} al ${fmtFecha(b.fecha_hasta)}): no se va a poder guardar.</strong>`;
+      if (b) $("no-dias").innerHTML = `${esc($("no-dias").textContent)} · <strong class="texto-alerta">Toca un período sin vacaciones (del ${fmtFecha(b.fecha_desde)} al ${fmtFecha(b.fecha_hasta)}): se puede cargar igual como excepción (te pide confirmar).</strong>`;
     }
     // Vacaciones de alguien que comparte puesto: avisar con quién (la base no deja superponerlas)
     if (t.descuenta_vacaciones) {
@@ -261,6 +261,16 @@
     if (d.fecha_hasta < d.fecha_desde) return ($("novedad-error").textContent = "La fecha \"hasta\" no puede ser anterior a \"desde\".");
     if (!["dias", "registro"].includes(t.unidad) && !(d.cantidad > 0)) return ($("novedad-error").textContent = `Indicá ${{ minutos: "los minutos (o la hora de llegada)", pesos: "el monto", horas: "las horas" }[t.unidad] || "la cantidad"}.`);
 
+    // Vacaciones en un período sin vacaciones: se pueden cargar como excepción, pero hay que confirmarlo
+    if (t.descuenta_vacaciones) {
+      const b = R.calc.periodoBloqueado(d.fecha_desde, d.fecha_hasta, app().empleado(d.empleado_id));
+      if (b) {
+        if (!await R.util.confirmar(`Del ${fmtFecha(b.fecha_desde)} al ${fmtFecha(b.fecha_hasta)} es un período sin vacaciones${b.motivo ? " (" + b.motivo + ")" : ""}.
+
+¿Cargar estas vacaciones igual, como excepción?`, { titulo: "Período sin vacaciones", aceptar: "Cargar igual" })) return;
+        d.excepcion_bloqueo = true;
+      }
+    }
     $("no-guardar").disabled = true;
     const repetida = await posibleRepetida(d, t);
     if (repetida && !await R.util.confirmar(`${nombreEmpleado(app().empleado(d.empleado_id))} ya tiene ${t.nombre.toLowerCase()} cargada para esa fecha:\n\n${repetida}\n\n¿Guardar igual?`)) {
