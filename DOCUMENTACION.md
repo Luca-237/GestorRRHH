@@ -45,7 +45,7 @@ Los permisos los aplica la **base** (RLS), no la página: aunque alguien modifiq
 - **Días** (vacaciones, francos, licencias, faltas): corridos, de "desde" a "hasta" inclusive. La base los calcula sola.
 - **Llegadas tarde:** minutos. **Horas extra:** horas, al 50% o al 100%.
 - **Vacaciones que corresponden** (antigüedad al 31/12 del período): hasta 5 años 14 días; más de 5 hasta 10, 21; más de 10 hasta 20, 28; más de 20, 35. Con menos de 6 meses en el año: 1 día cada 20 trabajados (aproximado con 6 días por semana).
-- **Período vacacional:** lo que se toma de enero a abril se descuenta, por defecto, del período del año anterior (se puede elegir otro al cargar).
+- **Período vacacional:** el de la empresa, del 1 de octubre de un año al 30 de septiembre del siguiente (no se usa la ventana de la ley, de octubre a abril). Lo tomado de enero a septiembre se descuenta, por defecto, del período del año anterior (se puede elegir otro al cargar). Los días prohibidos (Configuración) están dentro de ese período. Migración `20261106010000_periodo_vacacional_empresa.sql`.
 - Días arrastrados, acuerdos o correcciones: **Vacaciones → Ajuste** (admin).
 
 ## Estructura

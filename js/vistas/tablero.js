@@ -150,7 +150,7 @@
     $("tablero-empleados").innerHTML = `<thead><tr><th>Empleado</th>${conSucursal ? "<th>Sucursal</th>" : ""}
       <th class="num">Llegadas tarde</th><th class="num">Min. tarde${info(AYUDA.minTarde)}</th><th class="num">Horas extra${info(AYUDA.extra)}</th><th class="num">Francos</th>
       <th class="num">Vacaciones</th><th class="num">Lic. médica</th><th class="num">Faltas</th><th class="num">Otras${info(AYUDA.otras)}</th>
-      <th class="num">Saldo vac. ${anioVac}${info(`Días de vacaciones que le quedan del período ${anioVac} (de octubre ${anioVac} a abril ${anioVac + 1}): los que corresponden por antigüedad, más o menos los ajustes, menos los ya tomados. Si es negativo, tomó de más.`)}</th><th class="num">Adeuda${info("Saldo de la cuenta de horas del empleado: lo que debe por permisos o días pedidos menos lo que ya devolvió. En verde, si tiene horas a favor.")}</th></tr></thead>
+      <th class="num">Saldo vac. ${anioVac}${info(`Días de vacaciones que le quedan del período ${anioVac} (del 1/10/${anioVac} al 30/9/${anioVac + 1}): los que corresponden por antigüedad, más o menos los ajustes, menos los ya tomados. Si es negativo, tomó de más.`)}</th><th class="num">Adeuda${info("Saldo de la cuenta de horas del empleado: lo que debe por permisos o días pedidos menos lo que ya devolvió. En verde, si tiene horas a favor.")}</th></tr></thead>
       <tbody>${filas.join("") || `<tr><td colspan="12" class="vacio">No hay empleados activos${R.estado.filtroSucursal ? " en esta sucursal" : ""}. ${app().esAdmin() ? "Cargalos en Empleados." : ""}</td></tr>`}</tbody>`;
   }
 

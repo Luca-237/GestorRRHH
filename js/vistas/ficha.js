@@ -46,7 +46,7 @@
     const tipos = R.estado.tipos;
     const s = R.calc.saldoVacaciones(e, anioVac, novedades, ajustes, tipos);
     const saldoTxt = x => x.saldo == null ? "falta la fecha de ingreso" : `quedan ${fmtNum(x.saldo, 1)} de ${fmtNum(x.corresponden + x.ajuste, 1)} días`;
-    const periodo = a => `del período ${a} (de octubre ${a} a abril ${a + 1})`;
+    const periodo = a => `del período ${a} (del 1/10/${a} al 30/9/${a + 1})`;
     const ch = R.calc.cuentaHoras(e, novedades, tipos), fmtH = R.calc.fmtHoras;
     const saldoHoras = Math.abs(ch.saldo) < 0.005 ? "0 h" : ch.saldo > 0 ? fmtH(ch.saldo) : `${fmtH(ch.saldo)} a favor`;
     const filasHoras = [...ch.movimientos].reverse().map(m => `

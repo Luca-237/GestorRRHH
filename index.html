@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23e84e1b'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/app.css?v=20261106.3">
+<link rel="stylesheet" href="css/app.css?v=20261106.5">
 </head>
 <body>
 <script>
@@ -218,7 +218,7 @@
       <div class="vista-head">
         <div><h1>Vacaciones</h1><p class="sub">Días que corresponden por antigüedad (Ley de Contrato de Trabajo, art. 150), tomados y saldo.</p></div>
         <div class="controles">
-          <div><label for="vacaciones-anio">Período<span class="info" tabindex="0" role="img" aria-label="Período vacacional: las vacaciones de un año se toman entre el 1 de octubre de ese año y el 30 de abril del siguiente (Ley de Contrato de Trabajo)." data-info="Período vacacional: las vacaciones de un año se toman entre el 1 de octubre de ese año y el 30 de abril del siguiente (Ley de Contrato de Trabajo)."></span></label><select id="vacaciones-anio"></select></div>
+          <div><label for="vacaciones-anio">Período<span class="info" tabindex="0" role="img" aria-label="Período vacacional: el período de vacaciones de la empresa va del 1 de octubre de un año al 30 de septiembre del siguiente. Dentro de él están los días sin vacaciones (Configuración)." data-info="Período vacacional: el período de vacaciones de la empresa va del 1 de octubre de un año al 30 de septiembre del siguiente. Dentro de él están los días sin vacaciones (Configuración)."></span></label><select id="vacaciones-anio"></select></div>
         </div>
       </div>
       <div class="caja">
@@ -496,7 +496,7 @@
         <div id="no-recargo-wrap" hidden><label for="no-recargo">Recargo<span class="info" tabindex="0" role="img" aria-label="Al 50%: horas extra en días comunes. Al 100%: sábados después de las 13 h, domingos y feriados." data-info="Al 50%: horas extra en días comunes. Al 100%: sábados después de las 13 h, domingos y feriados."></span></label>
           <select id="no-recargo"><option value="50">50% (días hábiles)</option><option value="100">100% (sábado tarde, domingo, feriado)</option></select></div>
       </div>
-      <div id="no-vacaciones-wrap" hidden><label for="no-anio">Se descuenta del período<span class="info" tabindex="0" role="img" aria-label="A qué período de vacaciones se le restan estos días. Por defecto, lo tomado de enero a abril se descuenta del año anterior (el período va de octubre a abril)." data-info="A qué período de vacaciones se le restan estos días. Por defecto, lo tomado de enero a abril se descuenta del año anterior (el período va de octubre a abril)."></span></label><select id="no-anio"></select></div>
+      <div id="no-vacaciones-wrap" hidden><label for="no-anio">Se descuenta del período<span class="info" tabindex="0" role="img" aria-label="A qué período de vacaciones se le restan estos días. Por defecto, lo tomado de enero a septiembre se descuenta del año anterior (el período va del 1 de octubre al 30 de septiembre)." data-info="A qué período de vacaciones se le restan estos días. Por defecto, lo tomado de enero a septiembre se descuenta del año anterior (el período va del 1 de octubre al 30 de septiembre)."></span></label><select id="no-anio"></select></div>
       <div id="no-compensa-wrap" hidden><label class="check"><input type="checkbox" id="no-compensa"> Son para devolver horas que debe (no se pagan)</label><span class="info" tabindex="0" role="img" aria-label="Marcalo cuando el empleado se queda más tiempo para devolver horas que pidió (un permiso o un día). En vez de horas extra a liquidar, se guarda como &quot;Devolución de horas&quot; y se descuenta de su cuenta de horas." data-info="Marcalo cuando el empleado se queda más tiempo para devolver horas que pidió (un permiso o un día). En vez de horas extra a liquidar, se guarda como &quot;Devolución de horas&quot; y se descuenta de su cuenta de horas."></span></div>
       <div id="no-liq-he-wrap" hidden><label for="no-liq-mes">Liquidada en el sueldo de<span class="info" tabindex="0" role="img" aria-label="Mes en que estas horas extra se pagaron en el recibo. Dejalo vacío si todavía no se liquidaron: quedan en Horas extra → Pendientes de liquidar." data-info="Mes en que estas horas extra se pagaron en el recibo. Dejalo vacío si todavía no se liquidaron: quedan en Horas extra → Pendientes de liquidar."></span></label><input id="no-liq-mes" type="month"></div>
       <div id="no-desc-wrap" hidden><label for="no-desc-mes">Descontado en el sueldo de<span class="info" tabindex="0" role="img" aria-label="Mes del sueldo en el que se descontó. Dejalo vacío si todavía no se descontó: queda en Descuentos de sueldo → Pendientes." data-info="Mes del sueldo en el que se descontó. Dejalo vacío si todavía no se descontó: queda en Descuentos de sueldo → Pendientes."></span></label><input id="no-desc-mes" type="month"></div>
@@ -553,7 +553,7 @@
       <div class="row3">
         <div><label for="liq-dias">Días liquidados</label><input id="liq-dias" type="number" min="0.5" step="0.5" required></div>
         <div><label for="liq-fecha">Fecha de liquidación</label><input id="liq-fecha" type="date" required></div>
-        <div><label for="liq-desc">Descripción<span class="info" tabindex="0" role="img" aria-label="Por ejemplo, el período de la nota de vacaciones: &quot;del 02/02 al 15/02/2026&quot;." data-info="Por ejemplo, el período de la nota de vacaciones: &quot;del 02/02 al 15/02/2026&quot;."></span></label><input id="liq-desc" placeholder="ej: del 05/01 al 18/01/2026"></div>
+        <div><label for="liq-desc">Descripción (opcional)<span class="info" tabindex="0" role="img" aria-label="Por ejemplo, el período de la nota de vacaciones: &quot;del 02/02 al 15/02/2026&quot;." data-info="Por ejemplo, el período de la nota de vacaciones: &quot;del 02/02 al 15/02/2026&quot;."></span></label><input id="liq-desc" placeholder="opcional, ej: del 05/01 al 18/01/2026"></div>
       </div>
       <div class="mensaje-error" id="liquidacion-error" role="alert"></div>
       <div class="dlg-pie">
@@ -625,26 +625,26 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <!-- Configuración. Los ?v= obligan al navegador a bajar la versión nueva:
      al cambiar cualquier CSS/JS, subir el número en TODAS las líneas. -->
-<script src="js/config.js?v=20261106.3"></script>
+<script src="js/config.js?v=20261106.5"></script>
 <!-- Lógica (sin pantalla) -->
-<script src="js/utils.js?v=20261106.3"></script>
-<script src="js/calculos.js?v=20261106.3"></script>
-<script src="js/api.js?v=20261106.3"></script>
+<script src="js/utils.js?v=20261106.5"></script>
+<script src="js/calculos.js?v=20261106.5"></script>
+<script src="js/api.js?v=20261106.5"></script>
 <!-- Vistas (pantalla) -->
-<script src="js/vistas/acceso.js?v=20261106.3"></script>
-<script src="js/vistas/ficha.js?v=20261106.3"></script>
-<script src="js/vistas/tablero.js?v=20261106.3"></script>
-<script src="js/vistas/empleados.js?v=20261106.3"></script>
-<script src="js/vistas/novedades.js?v=20261106.3"></script>
-<script src="js/vistas/vacaciones.js?v=20261106.3"></script>
-<script src="js/vistas/horas.js?v=20261106.3"></script>
-<script src="js/vistas/horas-extra.js?v=20261106.3"></script>
-<script src="js/vistas/importar-cc.js?v=20261106.3"></script>
-<script src="js/vistas/descuentos.js?v=20261106.3"></script>
-<script src="js/vistas/calendario.js?v=20261106.3"></script>
-<script src="js/vistas/compartidos.js?v=20261106.3"></script>
-<script src="js/vistas/configuracion.js?v=20261106.3"></script>
+<script src="js/vistas/acceso.js?v=20261106.5"></script>
+<script src="js/vistas/ficha.js?v=20261106.5"></script>
+<script src="js/vistas/tablero.js?v=20261106.5"></script>
+<script src="js/vistas/empleados.js?v=20261106.5"></script>
+<script src="js/vistas/novedades.js?v=20261106.5"></script>
+<script src="js/vistas/vacaciones.js?v=20261106.5"></script>
+<script src="js/vistas/horas.js?v=20261106.5"></script>
+<script src="js/vistas/horas-extra.js?v=20261106.5"></script>
+<script src="js/vistas/importar-cc.js?v=20261106.5"></script>
+<script src="js/vistas/descuentos.js?v=20261106.5"></script>
+<script src="js/vistas/calendario.js?v=20261106.5"></script>
+<script src="js/vistas/compartidos.js?v=20261106.5"></script>
+<script src="js/vistas/configuracion.js?v=20261106.5"></script>
 <!-- Arranque -->
-<script src="js/main.js?v=20261106.3"></script>
+<script src="js/main.js?v=20261106.5"></script>
 </body>
 </html>

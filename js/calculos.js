@@ -259,8 +259,8 @@
       && p.fecha_desde <= hasta && p.fecha_hasta >= desde) || null;
   }
 
-  // Período vacacional por defecto de una fecha (enero-abril -> año anterior)
-  const anioVacacionesDe = iso => Number(iso.slice(0, 4)) - (Number(iso.slice(5, 7)) <= 4 ? 1 : 0);
+  // Período vacacional de la empresa: del 1/10 de un año al 30/9 del siguiente. Período de una fecha = año de su 1/10 más reciente (enero a septiembre -> año anterior)
+  const anioVacacionesDe = iso => Number(iso.slice(0, 4)) - (Number(iso.slice(5, 7)) <= 9 ? 1 : 0);
 
   // Novedades de ausencia que cubren el día `iso`
   function ausentesEn(iso, novedades, tipos) {
