@@ -3,7 +3,7 @@
 //  la liquidación de sueldos).
 // =====================================================================
 (function (R) {
-  const { $, esc, hoy, mesActual, rangoMes, mesTexto, diasEntre, fmtFecha, fmtNum, fmtMinutos, nombreEmpleado, toast, descargarCSV } = R.util;
+  const { $, esc, hoy, mesActual, rangoMes, mesTexto, sumarDias, diasEntre, fmtFecha, fmtNum, fmtMinutos, nombreEmpleado, toast, descargarCSV } = R.util;
   const app = () => R.app;
   let lista = [];      // novedades del mes mostradas
   let editando = null; // novedad que se está editando
@@ -73,14 +73,19 @@
     $("no-hasta-wrap").hidden = !porDias;
     $("no-desde-label").textContent = porDias ? "Desde" : "Fecha";
     $("no-cantidad-wrap").hidden = porDias || t.unidad === "registro";
-    $("no-cantidad-label").textContent = { minutos: "Minutos tarde", pesos: "Monto ($)", horas: "Horas" }[t.unidad] || "Cantidad";
+    $("no-cantidad-label").textContent = t.unidad === "horas"
+      ? ({ horas_extra: "Horas que hizo ese día", permiso_horas: "Horas del permiso", devolucion_horas: "Horas que devolvió ese día" }[t.clave] || "Cuántas horas")
+      : { minutos: "Minutos tarde", pesos: "Monto ($)" }[t.unidad] || "Cantidad";
+    $("no-cantidad").placeholder = t.unidad === "horas" ? "ej: 1,5" : "";
+    // Horas: se anota cuántas hizo cada día; con "+" se agregan más días (no al editar uno existente)
+    $("no-extra-wrap").hidden = t.unidad !== "horas" || !!editando;
+    if (t.unidad !== "horas") $("no-extra-lista").innerHTML = "";
     $("no-cantidad").step = t.unidad === "minutos" ? "1" : "any"; // "any": 0,33 h (20 min) tiene que ser válido
     $("no-recargo-wrap").hidden = t.clave !== "horas_extra";
-    // Hora: de llegada (calcula los minutos) o de inicio de las horas extra (sugiere el recargo)
-    const conHora = t.clave === "llegada_tarde" || t.clave === "horas_extra";
+    // Hora de llegada (calcula los minutos de la llegada tarde)
+    const conHora = t.clave === "llegada_tarde";
     $("no-hora-wrap").hidden = !conHora;
-    $("no-hora-label").textContent = t.clave === "llegada_tarde" ? "Hora de llegada" : "Hora de inicio";
-    $("no-hora-fin-wrap").hidden = t.clave !== "horas_extra";
+    $("no-hora-label").textContent = "Hora de llegada";
     $("no-compensa-wrap").hidden = t.clave !== "horas_extra" || !!editando;
     if (t.clave !== "horas_extra") $("no-compensa").checked = false;
     $("no-liq-he-wrap").hidden = t.clave !== "horas_extra";
@@ -127,20 +132,16 @@
         $("no-cantidad").value = min;
         hint.textContent = `Entra a las ${ent.hora} (${ent.origen}): llegó ${min} min tarde.`;
       } else hint.textContent = `Cargá la hora de llegada y los minutos se calculan solos (entra a las ${ent.hora}, ${ent.origen}). Si no la sabés, escribí los minutos.`;
-    } else if (t.clave === "horas_extra") {
-      const fin = $("no-hora-fin").value;
-      const partes = [];
-      if (hora && fin) {
-        const h = Math.round(R.calc.horasEntre(hora, fin) * 100) / 100;
-        $("no-cantidad").value = h;
-        partes.push(`De ${hora} a ${fin}: ${R.calc.fmtHoras(h)}.`);
-      } else if (Number($("no-cantidad").value)) partes.push(`= ${R.calc.fmtHoras(Number($("no-cantidad").value))}.`);
-      if (!$("no-recargo").dataset.manual) {
-        const sug = R.calc.recargoSugerido($("no-desde").value, hora, R.estado.feriados);
+    } else if (t.unidad === "horas") {
+      const partes = [], h = Number($("no-cantidad").value);
+      if (h) partes.push(`= ${R.calc.fmtHoras(h)}.`);
+      if (t.clave === "horas_extra" && !$("no-recargo").dataset.manual) {
+        const sug = R.calc.recargoSugerido($("no-desde").value, null, R.estado.feriados);
         $("no-recargo").value = String(sug);
         const fer = R.estado.feriados.find(f => f.fecha === $("no-desde").value);
-        if (sug === 100) partes.push(`Se sugiere 100%: ${fer ? "feriado (" + fer.descripcion + ")" : "domingo o sábado desde las 13"}.`);
+        if (sug === 100) partes.push(`Se sugiere 100%: ${fer ? "feriado (" + fer.descripcion + ")" : "domingo"}.`);
       }
+      if (t.clave === "horas_extra" && new Date($("no-desde").value + "T00:00:00Z").getUTCDay() === 6) partes.push("Sábado: si fueron desde las 13, elegí 100%.");
       hint.textContent = partes.join(" ");
     }
   }
@@ -166,7 +167,7 @@
     const id = Number($("no-empleado").value) || null, e = app().empleado(id);
     if (!e) { el.textContent = signo > 0 ? "Estas horas se suman a la cuenta de horas que el empleado debe." : "Estas horas se descuentan de la cuenta de horas que el empleado debe."; return; }
     const d = $("no-desde").value, h = $("no-hasta").value;
-    const cantidad = t.unidad === "dias" ? (d && h && h >= d ? diasEntre(d, h) : 0) : Number($("no-cantidad").value) || 0;
+    const cantidad = t.unidad === "dias" ? (d && h && h >= d ? diasEntre(d, h) : 0) : (Number($("no-cantidad").value) || 0) + (t.unidad === "horas" && !editando ? sumaExtras() : 0);
     const mov = R.calc.horasDeNovedad({ cantidad }, t, e) * signo;
     const mio = ++pedido;
     if (saldoCache.id !== id) {
@@ -188,6 +189,31 @@
       (mov ? ` Este movimiento ${signo > 0 ? "suma" : "descuenta"} ${esc(fmtH(mov))}${esc(dias)} → queda: <strong>${esc(txt(saldo + mov))}</strong>.` : "");
   }
 
+  // ---------- Horas de más días: "+" agrega un renglón con fecha (por defecto el día siguiente) y horas ----------
+  const extras = () => [...document.querySelectorAll("#no-extra-lista .no-extra")].map(r => ({
+    fila: r, fecha: r.querySelector(".rx-fecha").value, horas: Number(r.querySelector(".rx-horas").value) || 0,
+    recargo: r.querySelector(".rx-recargo") ? Number(r.querySelector(".rx-recargo").value) : null }));
+  const sumaExtras = () => extras().reduce((a, x) => a + x.horas, 0);
+  function agregarExtra() {
+    const fechas = [$("no-desde").value, ...extras().map(x => x.fecha)].filter(Boolean);
+    const sig = fechas.length ? sumarDias(fechas[fechas.length - 1], 1) : hoy();
+    const conRecargo = app().tipo($("no-tipo").value).clave === "horas_extra";
+    const div = document.createElement("div");
+    div.className = "no-extra" + (conRecargo ? "" : " sin-recargo");
+    div.innerHTML = `<div><label>Fecha</label><input type="date" class="rx-fecha" value="${sig}" required></div>
+      <div><label>Horas</label><input type="number" class="rx-horas" min="0" step="any" placeholder="ej: 1,5"></div>
+      ${conRecargo ? `<div><label>Recargo</label><select class="rx-recargo"><option value="50">50% (días hábiles)</option><option value="100">100% (sábado tarde, domingo, feriado)</option></select></div>` : ""}
+      <button type="button" class="link peligro rx-quitar" aria-label="Quitar este día">Quitar</button>`;
+    $("no-extra-lista").appendChild(div);
+    sugerirRecargo(div);
+    div.querySelector(".rx-horas").focus();
+    avisoHoras();
+  }
+  function sugerirRecargo(fila) {
+    const sel = fila.querySelector(".rx-recargo");
+    if (sel && !sel.dataset.manual) sel.value = String(R.calc.recargoSugerido(fila.querySelector(".rx-fecha").value, null, R.estado.feriados));
+  }
+
   function abrirFormulario(datos = {}) {
     editando = datos.id ? datos : null;
     saldoCache = { id: null, cuenta: null }; // la cuenta puede haber cambiado desde la última vez
@@ -196,7 +222,7 @@
     $("no-tipo").innerHTML = opcionesTipos(datos.tipo);
     $("no-tipo").value = datos.tipo || "";
     $("no-compensa").checked = false;
-    $("no-hora-fin").value = "";
+    $("no-extra-lista").innerHTML = "";
     $("no-desde").value = datos.fecha_desde || hoy();
     $("no-hasta").value = datos.fecha_hasta || datos.fecha_desde || hoy();
     $("no-cantidad").value = datos.cantidad ?? "";
@@ -242,7 +268,7 @@
       fecha_desde: $("no-desde").value,
       fecha_hasta: t.unidad === "dias" ? $("no-hasta").value : $("no-desde").value,
       cantidad: t.unidad === "dias" || t.unidad === "registro" ? 0 : Number($("no-cantidad").value),
-      hora: t.clave === "llegada_tarde" || t.clave === "horas_extra" ? $("no-hora").value : null,
+      hora: t.clave === "llegada_tarde" ? $("no-hora").value : t.clave === "horas_extra" && editando ? (editando.hora || null) : null,
       liquidado_en: t.clave === "horas_extra" ? ($("no-liq-mes").value ? $("no-liq-mes").value + "-01" : null)
                   : t.descuenta_sueldo ? ($("no-desc-mes").value ? $("no-desc-mes").value + "-01" : null)
                   : t.descuenta_vacaciones ? ($("no-liq-fecha").value || null) : null,
@@ -255,7 +281,7 @@
     if (compensa) {
       t = app().tipo("devolucion_horas");
       Object.assign(d, { tipo: t.clave, recargo: null, liquidado_en: null, hora: null,
-        observacion: ["Horas extra para devolver horas adeudadas" + ($("no-hora").value ? ` (desde las ${$("no-hora").value}${$("no-hora-fin").value ? " hasta las " + $("no-hora-fin").value : ""})` : ""), d.observacion].filter(Boolean).join(" — ") });
+        observacion: ["Horas extra para devolver horas adeudadas", d.observacion].filter(Boolean).join(" — ") });
     }
     if (t.clave === "llegada_tarde" && !d.hora && !(d.cantidad > 0)) return ($("novedad-error").textContent = "Cargá la hora de llegada (o los minutos).");
     if (d.fecha_hasta < d.fecha_desde) return ($("novedad-error").textContent = "La fecha \"hasta\" no puede ser anterior a \"desde\".");
@@ -271,25 +297,37 @@
         d.excepcion_bloqueo = true;
       }
     }
+    // Horas de más días (botón "+"): una novedad por día
+    const masDias = t.unidad === "horas" && !editando ? extras() : [];
+    for (const x of masDias) {
+      if (!x.fecha || !(x.horas > 0)) return ($("novedad-error").textContent = "Completá la fecha y las horas de cada día que agregaste (o quitá el renglón).");
+    }
+    const fechasLote = [d.fecha_desde, ...masDias.map(x => x.fecha)];
+    if (new Set(fechasLote).size !== fechasLote.length) return ($("novedad-error").textContent = "Hay dos renglones con la misma fecha.");
+    const lote = [d, ...masDias.map(x => ({ ...d, fecha_desde: x.fecha, fecha_hasta: x.fecha, cantidad: x.horas, recargo: d.recargo == null ? null : x.recargo }))];
+
     $("no-guardar").disabled = true;
-    const repetida = await posibleRepetida(d, t);
+    const repetida = (await Promise.all(lote.map(f => posibleRepetida(f, t)))).filter(Boolean).join("\n");
     if (repetida && !await R.util.confirmar(`${nombreEmpleado(app().empleado(d.empleado_id))} ya tiene ${t.nombre.toLowerCase()} cargada para esa fecha:\n\n${repetida}\n\n¿Guardar igual?`)) {
       $("no-guardar").disabled = false;
       return;
     }
+    let hechas = 0;
     try {
       let creada = null;
       if (editando) await R.api.novedades.actualizar(editando.id, d);
-      else creada = await R.api.novedades.crear(d);
+      else for (const f of lote) { creada = await R.api.novedades.crear(f); hechas++; }
       $("dlg-novedad").close();
       // Cada 3 llegadas tarde acumuladas la base genera una falta: avisarlo
       const falta = creada && creada.tipo === "llegada_tarde" ? await R.api.novedades.generadaPor(creada.id).catch(() => null) : null;
       if (falta) toast(`Novedad cargada. ${falta.observacion}: se registró una falta injustificada el ${fmtFecha(falta.fecha_desde)}.`, "error", 8000);
+      else if (lote.length > 1) toast(`Se cargaron ${lote.length} días${compensa ? " como devolución de horas" : ""}.`);
       else toast(compensa ? "Guardado como devolución de horas: se descontó de su cuenta de horas." : editando ? "Novedad actualizada." : "Novedad cargada.");
       app().refrescar();
       R.vistaFicha.refrescarSiAbierta();
     } catch (err) {
-      $("novedad-error").textContent = err.message;
+      $("novedad-error").textContent = hechas ? `Se cargaron ${hechas} de ${lote.length} días y falló el siguiente: ${err.message}` : err.message;
+      if (hechas) { app().refrescar(); R.vistaFicha.refrescarSiAbierta(); }
     } finally { $("no-guardar").disabled = false; }
   }
 
@@ -365,7 +403,10 @@
     $("no-empleado").addEventListener("change", ajustarFormulario);
     $("no-cantidad").addEventListener("input", avisoHoras);
     $("no-hora").addEventListener("input", ajustarHora);
-    $("no-hora-fin").addEventListener("input", ajustarHora);
+    $("no-mas").addEventListener("click", agregarExtra);
+    $("no-extra-lista").addEventListener("input", e => { if (e.target.classList.contains("rx-fecha")) sugerirRecargo(e.target.closest(".no-extra")); avisoHoras(); });
+    $("no-extra-lista").addEventListener("change", e => { if (e.target.classList.contains("rx-recargo")) e.target.dataset.manual = "1"; });
+    $("no-extra-lista").addEventListener("click", e => { if (e.target.closest(".rx-quitar")) { e.target.closest(".no-extra").remove(); avisoHoras(); } });
     $("no-cantidad").addEventListener("input", () => { if (app().tipo($("no-tipo").value).clave === "horas_extra") ajustarHora(); });
     $("no-compensa").addEventListener("change", () => {
       // Al marcarlo, mostrar cómo queda la cuenta de horas

@@ -65,6 +65,11 @@ input[type=checkbox], input[type=radio] { accent-color:var(--naranja); width:aut
 input[type=color] { padding:2px; border-radius:6px; }
 .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+/* Horas de más días (botón "+" en Novedades) */
+.no-extra { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:12px; align-items:end; margin-top:10px; }
+.no-extra.sin-recargo { grid-template-columns:1fr 1fr auto; }
+.no-extra .link { padding-bottom:10px; }
+#no-mas { margin:12px 0 4px; }
 .hint { font-size:12.5px; color:var(--muted); margin-top:6px; }
 .check { display:flex; align-items:center; gap:7px; color:var(--texto); font-size:13.5px; margin-top:12px; }
 
@@ -363,6 +368,7 @@ dialog.dlg-pregunta { width:min(440px, calc(100vw - 32px)); }
   .cal-vista-grilla { display:none; }
   .cal-agenda { display:block; }
   .row, .row3, .form-grid { grid-template-columns:1fr; }
+  .no-extra, .no-extra.sin-recargo { grid-template-columns:1fr 1fr; }
   .vista-head h1 { font-size:23px; }
   .kpi .valor { font-size:26px; }
   .caja { padding:16px; }

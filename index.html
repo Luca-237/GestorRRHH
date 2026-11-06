@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23e84e1b'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/app.css?v=20261106.5">
+<link rel="stylesheet" href="css/app.css?v=20261106.6">
 </head>
 <body>
 <script>
@@ -488,13 +488,16 @@
       <div class="hint" id="no-dias"></div>
       <div class="row" id="no-hora-wrap" hidden>
         <div><label for="no-hora" id="no-hora-label">Hora</label><input id="no-hora" type="time"></div>
-        <div id="no-hora-fin-wrap"><label for="no-hora-fin">Hora de fin<span class="info" tabindex="0" role="img" aria-label="Opcional. Con la hora de inicio y la de fin se calculan solas las horas. Si cargás un total de varios días, dejala vacía y escribí las horas a mano." data-info="Opcional. Con la hora de inicio y la de fin se calculan solas las horas. Si cargás un total de varios días, dejala vacía y escribí las horas a mano."></span></label><input id="no-hora-fin" type="time"></div>
       </div>
       <div class="hint" id="no-hora-hint"></div>
       <div class="row" id="no-cantidad-wrap" hidden>
         <div><label for="no-cantidad" id="no-cantidad-label">Cantidad</label><input id="no-cantidad" type="number" min="0" step="any"></div>
         <div id="no-recargo-wrap" hidden><label for="no-recargo">Recargo<span class="info" tabindex="0" role="img" aria-label="Al 50%: horas extra en días comunes. Al 100%: sábados después de las 13 h, domingos y feriados." data-info="Al 50%: horas extra en días comunes. Al 100%: sábados después de las 13 h, domingos y feriados."></span></label>
           <select id="no-recargo"><option value="50">50% (días hábiles)</option><option value="100">100% (sábado tarde, domingo, feriado)</option></select></div>
+      </div>
+      <div id="no-extra-wrap" hidden>
+        <div id="no-extra-lista"></div>
+        <button type="button" class="btn-sec" id="no-mas" title="Agregar otro día" aria-label="Agregar otro día">+ Agregar otro día</button>
       </div>
       <div id="no-vacaciones-wrap" hidden><label for="no-anio">Se descuenta del período<span class="info" tabindex="0" role="img" aria-label="A qué período de vacaciones se le restan estos días. Por defecto, lo tomado de enero a septiembre se descuenta del año anterior (el período va del 1 de octubre al 30 de septiembre)." data-info="A qué período de vacaciones se le restan estos días. Por defecto, lo tomado de enero a septiembre se descuenta del año anterior (el período va del 1 de octubre al 30 de septiembre)."></span></label><select id="no-anio"></select></div>
       <div id="no-compensa-wrap" hidden><label class="check"><input type="checkbox" id="no-compensa"> Son para devolver horas que debe (no se pagan)</label><span class="info" tabindex="0" role="img" aria-label="Marcalo cuando el empleado se queda más tiempo para devolver horas que pidió (un permiso o un día). En vez de horas extra a liquidar, se guarda como &quot;Devolución de horas&quot; y se descuenta de su cuenta de horas." data-info="Marcalo cuando el empleado se queda más tiempo para devolver horas que pidió (un permiso o un día). En vez de horas extra a liquidar, se guarda como &quot;Devolución de horas&quot; y se descuenta de su cuenta de horas."></span></div>
@@ -625,26 +628,26 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <!-- Configuración. Los ?v= obligan al navegador a bajar la versión nueva:
      al cambiar cualquier CSS/JS, subir el número en TODAS las líneas. -->
-<script src="js/config.js?v=20261106.5"></script>
+<script src="js/config.js?v=20261106.6"></script>
 <!-- Lógica (sin pantalla) -->
-<script src="js/utils.js?v=20261106.5"></script>
-<script src="js/calculos.js?v=20261106.5"></script>
-<script src="js/api.js?v=20261106.5"></script>
+<script src="js/utils.js?v=20261106.6"></script>
+<script src="js/calculos.js?v=20261106.6"></script>
+<script src="js/api.js?v=20261106.6"></script>
 <!-- Vistas (pantalla) -->
-<script src="js/vistas/acceso.js?v=20261106.5"></script>
-<script src="js/vistas/ficha.js?v=20261106.5"></script>
-<script src="js/vistas/tablero.js?v=20261106.5"></script>
-<script src="js/vistas/empleados.js?v=20261106.5"></script>
-<script src="js/vistas/novedades.js?v=20261106.5"></script>
-<script src="js/vistas/vacaciones.js?v=20261106.5"></script>
-<script src="js/vistas/horas.js?v=20261106.5"></script>
-<script src="js/vistas/horas-extra.js?v=20261106.5"></script>
-<script src="js/vistas/importar-cc.js?v=20261106.5"></script>
-<script src="js/vistas/descuentos.js?v=20261106.5"></script>
-<script src="js/vistas/calendario.js?v=20261106.5"></script>
-<script src="js/vistas/compartidos.js?v=20261106.5"></script>
-<script src="js/vistas/configuracion.js?v=20261106.5"></script>
+<script src="js/vistas/acceso.js?v=20261106.6"></script>
+<script src="js/vistas/ficha.js?v=20261106.6"></script>
+<script src="js/vistas/tablero.js?v=20261106.6"></script>
+<script src="js/vistas/empleados.js?v=20261106.6"></script>
+<script src="js/vistas/novedades.js?v=20261106.6"></script>
+<script src="js/vistas/vacaciones.js?v=20261106.6"></script>
+<script src="js/vistas/horas.js?v=20261106.6"></script>
+<script src="js/vistas/horas-extra.js?v=20261106.6"></script>
+<script src="js/vistas/importar-cc.js?v=20261106.6"></script>
+<script src="js/vistas/descuentos.js?v=20261106.6"></script>
+<script src="js/vistas/calendario.js?v=20261106.6"></script>
+<script src="js/vistas/compartidos.js?v=20261106.6"></script>
+<script src="js/vistas/configuracion.js?v=20261106.6"></script>
 <!-- Arranque -->
-<script src="js/main.js?v=20261106.5"></script>
+<script src="js/main.js?v=20261106.6"></script>
 </body>
 </html>
