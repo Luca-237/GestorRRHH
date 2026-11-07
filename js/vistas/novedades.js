@@ -63,7 +63,7 @@
     // Las novedades son lo que se liquida; las horas de movimiento interno se cargan desde la ficha / Cuenta de horas
     const disponibles = R.estado.tipos.filter(t => t.clave === actual || (t.activo && (modoInterno ? (tipoInterno(t) && t.clave !== "banco_uso") || t.clave === "horas_extra" : !tipoInterno(t))));
     const usados = new Set(GRUPOS_TIPOS.flatMap(g => g[1]));
-    const op = t => `<option value="${esc(t.clave)}">${esc(modoInterno && t.clave === "horas_extra" ? "Horas extra al banco (horas a favor)" : t.nombre)}</option>`;
+    const op = t => `<option value="${esc(t.clave)}">${esc(modoInterno && t.clave === "horas_extra" ? "Cargar horas a la billetera (horas a favor)" : t.nombre)}</option>`;
     const grupos = GRUPOS_TIPOS.map(([nombre, claves]) => [nombre, claves.map(c => disponibles.find(t => t.clave === c)).filter(Boolean)]);
     grupos.push(["Otros", disponibles.filter(t => !usados.has(t.clave))]);
     return `<option value="" disabled>Elegí el tipo</option>` + grupos.filter(g => g[1].length)
@@ -96,7 +96,7 @@
     $("no-liq-he-wrap").hidden = t.clave !== "horas_extra" || $("no-banco").checked;   // en el banco no se liquidan
     // Adelantos y compras en cuenta corriente: ambos se descuentan del sueldo, pero son cosas distintas
     $("no-desc-wrap").hidden = !t.descuenta_sueldo;
-    $("no-tipo-hint").textContent = modoInterno && t.clave === "horas_extra" ? "Quedan en el banco de horas del empleado, como horas a favor. No se liquidan: después decide si usarlas o cobrarlas." : { adelanto: "Plata que se le da al empleado por adelantado y se descuenta del sueldo.",
+    $("no-tipo-hint").textContent = modoInterno && t.clave === "horas_extra" ? "Quedan en la billetera de horas del empleado, como horas a favor. No se liquidan: después se usan para lo que haga falta (cobrarlas, tiempo libre, cubrir horas que debe u otro uso)." : { adelanto: "Plata que se le da al empleado por adelantado y se descuenta del sueldo.",
       compra_cuenta_corriente: "Mercadería que compró en la tienda y paga después: se descuenta del sueldo.",
       viatico: "Se paga al empleado; no se descuenta." }[t.clave] || "";
     $("no-liq-vac-wrap").hidden = !t.descuenta_vacaciones;
@@ -330,7 +330,7 @@
       // Cada 3 llegadas tarde acumuladas la base genera una falta: avisarlo
       const falta = creada && creada.tipo === "llegada_tarde" ? await R.api.novedades.generadaPor(creada.id).catch(() => null) : null;
       if (falta) toast(`Novedad cargada. ${falta.observacion}: se registró una falta injustificada el ${fmtFecha(falta.fecha_desde)}.`, "error", 8000);
-      else if (d.banco) toast(lote.length > 1 ? `Se guardaron ${lote.length} días en el banco de horas.` : "Guardado en el banco de horas: quedan como horas a favor.");
+      else if (d.banco) toast(lote.length > 1 ? `Se cargaron ${lote.length} días a la billetera de horas.` : "Cargado a la billetera de horas: quedan como horas a favor.");
       else if (lote.length > 1) toast(`Se cargaron ${lote.length} días${compensa ? " como devolución de horas" : ""}.`);
       else toast(compensa ? "Guardado como devolución de horas: se descontó de su cuenta de horas." : editando ? "Novedad actualizada." : "Novedad cargada.");
       app().refrescar();

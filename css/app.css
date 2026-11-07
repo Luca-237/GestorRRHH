@@ -260,6 +260,15 @@ dialog.dlg-pregunta { width:min(440px, calc(100vw - 32px)); }
 .aviso-horas strong { font-weight:600; }
 .tabla td.debe { color:var(--naranja-oscuro); font-weight:600; }
 .tabla td.a-favor { color:var(--ok); font-weight:600; }
+/* Billetera de horas: saldo y opciones de uso */
+.saldo-billetera { background:var(--naranja-tenue); border:1px solid var(--linea-fuerte); border-radius:10px; padding:10px 14px; margin-bottom:12px; font-size:14px; }
+.saldo-billetera strong { font-variant-numeric:tabular-nums; }
+.opciones-uso { display:grid; gap:8px; margin-top:6px; }
+.opcion-uso { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border:1px solid var(--linea-fuerte); border-radius:10px; cursor:pointer; background:var(--blanco); }
+.opcion-uso input { margin-top:3px; width:auto; }
+.opcion-uso span { display:block; }
+.opcion-uso small { display:block; color:var(--muted); font-size:12.5px; margin-top:2px; }
+.opcion-uso:has(input:checked) { border-color:var(--naranja); background:var(--naranja-tenue); }
 
 /* ---------- Marca "Revisar" (cargas que pueden estar repetidas) ---------- */
 .marca-revisar { display:inline-block; margin-left:6px; padding:1px 7px; border-radius:var(--r-pill); background:#fff1d6; color:#8a5a00; font:600 10.5px/1.5 var(--display); letter-spacing:.02em; cursor:help; vertical-align:1px; }

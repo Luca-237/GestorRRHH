@@ -15,7 +15,7 @@
     if (n.con_certificado === true) partes.push("Con certificado");
     else if (n.con_certificado === false && n.tipo === "licencia_medica") partes.push("Sin certificado");
     if (n.hora) partes.push((n.tipo === "llegada_tarde" ? "Llegó " : "Desde las ") + n.hora.slice(0, 5));
-    if (n.tipo === "horas_extra") partes.push(n.banco ? "En el banco de horas" + (Number(n.banco_usado) ? ` (usó ${R.calc.fmtHoras(n.banco_usado)})` : "") : n.liquidado_en ? "Liquidada en " + R.util.mesTexto(n.liquidado_en.slice(0, 7)) : "Sin liquidar");
+    if (n.tipo === "horas_extra") partes.push(n.banco ? "En la billetera de horas" + (Number(n.banco_usado) ? ` (usó ${R.calc.fmtHoras(n.banco_usado)})` : "") : n.liquidado_en ? "Liquidada en " + R.util.mesTexto(n.liquidado_en.slice(0, 7)) : "Sin liquidar");
     if (t.descuenta_vacaciones) partes.push(`Período ${n.anio_vacaciones}` + (n.liquidado_en ? ` · liquidado el ${fmtFecha(n.liquidado_en)}` : " · sin liquidar"));
     if (n.generada_por) partes.push("Generada sola");
     return partes.length ? `<small>${esc(partes.join(" · "))}</small>` : "";
@@ -68,11 +68,19 @@
         <td>${esc(n.observacion)}${detalle(n)}</td>
       </tr>`).join("");
 
-    const filasBanco = novedades.filter(n => n.banco || n.tipo === "banco_uso").sort((a, b) => b.fecha_desde.localeCompare(a.fecha_desde) || b.id - a.id).map(n => n.tipo === "banco_uso" ? `
-      <tr class="clic" data-novedad="${n.id}"><td>${fmtFecha(n.fecha_desde)}</td><td>Uso del banco</td>
-        <td class="num debe">−${esc(fmtH(n.cantidad))}</td><td>${esc(n.observacion)}</td></tr>` : `
-      <tr class="clic" data-novedad="${n.id}"><td>${fmtFecha(n.fecha_desde)}</td><td>Depósito al ${Number(n.recargo) === 100 ? 100 : 50}%</td>
-        <td class="num a-favor">+${esc(fmtH(n.cantidad))}</td><td>${esc(n.observacion)}<small>${Number(n.banco_usado) ? `usó ${esc(fmtH(n.banco_usado))} · ` : ""}quedan ${esc(fmtH(Math.max(0, n.cantidad - (n.banco_usado || 0))))}</small></td></tr>`).join("");
+    // Resumen de la billetera: cargas (+) y usos (−) en orden, con el saldo después de cada movimiento
+    let saldoBilletera = 0;
+    const filasBanco = novedades.filter(n => n.banco || n.tipo === "banco_uso")
+      .sort((a, b) => a.fecha_desde.localeCompare(b.fecha_desde) || (a.tipo === "banco_uso") - (b.tipo === "banco_uso") || a.id - b.id)
+      .map(n => {
+        const uso = n.tipo === "banco_uso";
+        saldoBilletera += uso ? -Number(n.cantidad) : Number(n.cantidad);
+        return `<tr class="clic" data-novedad="${n.id}"><td>${fmtFecha(n.fecha_desde)}</td>
+          <td>${uso ? "Uso de horas" : `Carga al ${Number(n.recargo) === 100 ? 100 : 50}%`}</td>
+          <td class="num ${uso ? "debe" : "a-favor"}">${uso ? "−" : "+"}${esc(fmtH(n.cantidad))}</td>
+          <td class="num">${esc(fmtH(Math.max(0, saldoBilletera)))}</td>
+          <td>${esc(n.observacion)}</td></tr>`;
+      }).reverse().join("");
 
     $("ficha-cuerpo").innerHTML = `
       <dl class="ficha-datos">
@@ -99,7 +107,7 @@
       ${e.notas ? `<p class="hint" style="white-space:pre-line">${esc(e.notas)}</p>` : ""}
       <div class="kpis" style="margin-top:8px">
         <div class="kpi destacado"><div class="etiqueta">Saldo vacaciones ${anioVac}${info(`Días de vacaciones que le quedan ${periodo(anioVac)}. Se calcula así: días que corresponden por antigüedad, más o menos los ajustes, menos los días ya tomados.`)}</div><div class="valor">${s.saldo == null ? "—" : fmtNum(s.saldo, 1)}<small>días</small></div><div class="detalle">${s.saldo == null ? "falta la fecha de ingreso" : `corresponden ${s.corresponden}${s.ajuste ? ` ${s.ajuste > 0 ? "+" : "−"} ${fmtNum(Math.abs(s.ajuste), 1)} de ajuste` : ""} · tomados ${fmtNum(s.tomados, 1)}${s.programados ? ` (${fmtNum(s.programados, 1)} programados)` : ""}`}</div></div>
-        <div class="kpi"><div class="etiqueta">Banco de horas${info("Horas extra guardadas como horas a favor (sin liquidar), en dos columnas: al 50% y al 100%. Se usan o se pagan desde Cuenta de horas.")}</div><div class="valor" style="font-size:26px">${esc(R.calc.fmtHoras(banco.total))}</div><div class="detalle">al 50%: ${esc(R.calc.fmtHoras(banco.h50))} · al 100%: ${esc(R.calc.fmtHoras(banco.h100))}</div></div>
+        <div class="kpi"><div class="etiqueta">Billetera de horas${info("Horas a favor del empleado, en dos saldos: al 50% y al 100%. Se usan desde Cuenta de horas para cobrarlas, tiempo libre, cubrir horas que debe u otro uso.")}</div><div class="valor" style="font-size:26px">${esc(R.calc.fmtHoras(banco.total))}</div><div class="detalle">al 50%: ${esc(R.calc.fmtHoras(banco.h50))} · al 100%: ${esc(R.calc.fmtHoras(banco.h100))}</div></div>
         <div class="kpi"><div class="etiqueta">Cuenta de horas${info("Horas que debe devolver hoy por permisos o días pedidos, descontando lo que ya devolvió. Si dice \"a favor\", devolvió de más.")}</div><div class="valor" style="font-size:26px">${esc(saldoHoras)}</div><div class="detalle">${ch.movimientos.length ? (ch.saldo > 0.005 ? `adeuda ${esc(fmtH(ch.saldo))} en ${ch.pendientes.length} ${ch.pendientes.length === 1 ? "deuda pendiente" : "deudas pendientes"}` : ch.saldo < -0.005 ? "devolvió de más" : "no adeuda nada") : "sin movimientos"}</div></div>
       </div>
       <div class="filtros" style="justify-content:flex-end">
@@ -113,9 +121,9 @@
       <h2 style="margin-top:20px">Cuenta de horas${info("Movimientos de la cuenta, del más nuevo al más viejo. \"Saldo\" es lo que debía después de cada movimiento, como en un resumen de cuenta corriente.")}</h2>
       <div class="tabla-wrap"><table class="tabla grilla"><thead><tr><th>Fecha</th><th>Tipo</th><th class="num">Horas</th><th class="num">Saldo</th><th>Observación</th></tr></thead>
         <tbody>${filasHoras || `<tr><td colspan="5" class="vacio">Sin movimientos en la cuenta de horas.</td></tr>`}</tbody></table></div>
-      <h2 style="margin-top:20px">Banco de horas${info("Horas extra guardadas como horas a favor (no se liquidan) y los usos que se hicieron. Se usan o se pagan desde Cuenta de horas.")}</h2>
-      <div class="tabla-wrap"><table class="tabla grilla"><thead><tr><th>Fecha</th><th>Movimiento</th><th class="num">Horas</th><th>Detalle</th></tr></thead>
-        <tbody>${filasBanco || `<tr><td colspan="4" class="vacio">Sin movimientos en el banco de horas.</td></tr>`}</tbody></table></div>`;
+      <h2 style="margin-top:20px">Billetera de horas${info("Resumen de la billetera, del más nuevo al más viejo: cada carga suma y cada uso resta. \"Saldo\" es lo que quedaba después del movimiento (suma las horas al 50% y al 100%). Las horas se usan desde Cuenta de horas.")}</h2>
+      <div class="tabla-wrap"><table class="tabla grilla"><thead><tr><th>Fecha</th><th>Movimiento</th><th class="num">Horas</th><th class="num">Saldo</th><th>Detalle</th></tr></thead>
+        <tbody>${filasBanco || `<tr><td colspan="5" class="vacio">Sin movimientos en la billetera de horas.</td></tr>`}</tbody></table></div>`;
   }
 
   function iniciar() {

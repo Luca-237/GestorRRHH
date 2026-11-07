@@ -9,9 +9,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23e84e1b'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/app.css?v=20261107.2">
+<link rel="stylesheet" href="css/app.css?v=20261107.3">
 <!-- El color de fondo elegido se aplica después de la hoja de estilos (para pisarla) y antes de dibujar, así no parpadea -->
-<script src="js/color.js?v=20261107.2"></script>
+<script src="js/color.js?v=20261107.3"></script>
 <script>try { ColorFondo.aplicar(ColorFondo.leer()); } catch (e) {}</script>
 </head>
 <body>
@@ -328,9 +328,9 @@
       </div>
       <div class="kpis" id="horas-kpis"></div>
       <div class="caja" id="caja-banco">
-        <h2>Banco de horas (horas a favor)<span class="info" tabindex="0" role="img" aria-label="Horas extra que se guardaron en el banco en vez de liquidarlas. Están en dos columnas, al 50% y al 100%, que no se mezclan. El empleado decide después para qué usarlas: Usar (tiempo libre o cubrir horas que debe) o Pagar (pasan a Pendientes de liquidar)." data-info="Horas extra que se guardaron en el banco en vez de liquidarlas. Están en dos columnas, al 50% y al 100%, que no se mezclan. El empleado decide después para qué usarlas: Usar (tiempo libre o cubrir horas que debe) o Pagar (pasan a Pendientes de liquidar)."></span></h2>
+        <h2>Billetera de horas<span class="info" tabindex="0" role="img" aria-label="Las horas a favor de cada empleado, como una billetera. Se cargan horas y se usan para lo que haga falta: cobrarlas en el sueldo, tiempo libre, cubrir horas que debe u otro uso. Hay dos saldos que no se mezclan: horas al 50% y horas al 100%." data-info="Las horas a favor de cada empleado, como una billetera. Se cargan horas y se usan para lo que haga falta: cobrarlas en el sueldo, tiempo libre, cubrir horas que debe u otro uso. Hay dos saldos que no se mezclan: horas al 50% y horas al 100%."></span></h2>
         <p class="hint" id="banco-resumen" style="margin:-4px 0 10px"></p>
-        <div class="filtros" style="margin:0 0 10px"><button type="button" class="btn-sec" id="banco-nuevo">+ Guardar horas en el banco</button></div>
+        <div class="filtros" style="margin:0 0 10px"><button type="button" class="btn-sec primario" id="banco-nuevo">+ Cargar horas a la billetera</button></div>
         <div class="tabla-wrap"><table class="tabla grilla con-nombre" id="tabla-banco"></table></div>
       </div>
       <div class="caja">
@@ -537,27 +537,30 @@
   </form>
 </dialog>
 
-<!-- ============ Diálogo: usar o pagar horas del banco ============ -->
+<!-- ============ Diálogo: usar horas de la billetera ============ -->
 <dialog class="dlg" id="dlg-banco">
   <form method="dialog" id="form-banco" autocomplete="off">
     <div class="dlg-head">
-      <h3 id="banco-titulo">Banco de horas</h3>
+      <h3 id="banco-titulo">Usar horas de la billetera</h3>
       <button type="button" class="btn-cerrar" data-cerrar aria-label="Cerrar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
     </div>
     <div class="dlg-body">
-      <p class="hint" id="banco-info"></p>
+      <div class="saldo-billetera" id="banco-info"></div>
       <div class="row">
         <div><label for="banco-recargo">Horas al</label><select id="banco-recargo"><option value="50">50% (días comunes)</option><option value="100">100% (sábado tarde, domingo, feriado)</option></select></div>
-        <div><label for="banco-horas">Cuántas horas</label><input id="banco-horas" type="number" min="0" step="any" placeholder="ej: 2" required></div>
+        <div><label for="banco-horas">Cuántas horas <button type="button" class="link" id="banco-todas">usar todas</button></label><input id="banco-horas" type="number" min="0" step="any" placeholder="ej: 2" required></div>
       </div>
-      <div id="banco-uso-wrap">
-        <label for="banco-para">Para qué se usan</label>
-        <select id="banco-para"><option value="libre">Tiempo libre (un permiso o un día)</option><option value="deuda">Cubrir horas que debe (cuenta de horas)</option></select>
-        <div class="row"><div><label for="banco-fecha">Fecha</label><input id="banco-fecha" type="date"></div></div>
-        <label for="banco-obs">Observación</label><textarea id="banco-obs" placeholder="Opcional"></textarea>
+      <label style="margin-top:12px">Para qué las usás</label>
+      <div class="opciones-uso" id="banco-para" role="radiogroup">
+        <label class="opcion-uso"><input type="radio" name="banco-para" value="cobrar" checked><span><strong>Cobrarlas en el sueldo</strong><small>Pasan a Pendientes de liquidar (Horas extra), con su recargo.</small></span></label>
+        <label class="opcion-uso"><input type="radio" name="banco-para" value="libre"><span><strong>Tiempo libre</strong><small>Un permiso o un día que se toma con estas horas.</small></span></label>
+        <label class="opcion-uso"><input type="radio" name="banco-para" value="deuda"><span><strong>Cubrir horas que debe</strong><small>Baja lo que debe en la cuenta de horas.</small></span></label>
+        <label class="opcion-uso"><input type="radio" name="banco-para" value="otro"><span><strong>Otro uso</strong><small>Cualquier otro fin: contá cuál en el detalle.</small></span></label>
       </div>
+      <div class="row"><div><label for="banco-fecha">Fecha</label><input id="banco-fecha" type="date"></div></div>
+      <label for="banco-obs" id="banco-obs-label">Detalle</label><textarea id="banco-obs" placeholder="Opcional"></textarea>
       <div class="mensaje-error" id="banco-error" role="alert"></div>
       <div class="dlg-pie">
         <button type="button" class="btn-sec" data-cerrar>Cancelar</button>
@@ -678,27 +681,27 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <!-- Configuración. Los ?v= obligan al navegador a bajar la versión nueva:
      al cambiar cualquier CSS/JS, subir el número en TODAS las líneas. -->
-<script src="js/config.js?v=20261107.2"></script>
+<script src="js/config.js?v=20261107.3"></script>
 <!-- Lógica (sin pantalla) -->
-<script src="js/utils.js?v=20261107.2"></script>
-<script src="js/calculos.js?v=20261107.2"></script>
-<script src="js/api.js?v=20261107.2"></script>
+<script src="js/utils.js?v=20261107.3"></script>
+<script src="js/calculos.js?v=20261107.3"></script>
+<script src="js/api.js?v=20261107.3"></script>
 <!-- Vistas (pantalla) -->
-<script src="js/vistas/acceso.js?v=20261107.2"></script>
-<script src="js/vistas/ficha.js?v=20261107.2"></script>
-<script src="js/vistas/tablero.js?v=20261107.2"></script>
-<script src="js/vistas/empleados.js?v=20261107.2"></script>
-<script src="js/vistas/novedades.js?v=20261107.2"></script>
-<script src="js/vistas/vacaciones.js?v=20261107.2"></script>
-<script src="js/vistas/banco.js?v=20261107.2"></script>
-<script src="js/vistas/horas.js?v=20261107.2"></script>
-<script src="js/vistas/horas-extra.js?v=20261107.2"></script>
-<script src="js/vistas/importar-cc.js?v=20261107.2"></script>
-<script src="js/vistas/descuentos.js?v=20261107.2"></script>
-<script src="js/vistas/calendario.js?v=20261107.2"></script>
-<script src="js/vistas/compartidos.js?v=20261107.2"></script>
-<script src="js/vistas/configuracion.js?v=20261107.2"></script>
+<script src="js/vistas/acceso.js?v=20261107.3"></script>
+<script src="js/vistas/ficha.js?v=20261107.3"></script>
+<script src="js/vistas/tablero.js?v=20261107.3"></script>
+<script src="js/vistas/empleados.js?v=20261107.3"></script>
+<script src="js/vistas/novedades.js?v=20261107.3"></script>
+<script src="js/vistas/vacaciones.js?v=20261107.3"></script>
+<script src="js/vistas/banco.js?v=20261107.3"></script>
+<script src="js/vistas/horas.js?v=20261107.3"></script>
+<script src="js/vistas/horas-extra.js?v=20261107.3"></script>
+<script src="js/vistas/importar-cc.js?v=20261107.3"></script>
+<script src="js/vistas/descuentos.js?v=20261107.3"></script>
+<script src="js/vistas/calendario.js?v=20261107.3"></script>
+<script src="js/vistas/compartidos.js?v=20261107.3"></script>
+<script src="js/vistas/configuracion.js?v=20261107.3"></script>
 <!-- Arranque -->
-<script src="js/main.js?v=20261107.2"></script>
+<script src="js/main.js?v=20261107.3"></script>
 </body>
 </html>
