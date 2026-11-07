@@ -9,9 +9,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23e84e1b'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/app.css?v=20261106.7">
+<link rel="stylesheet" href="css/app.css?v=20261107.1">
 <!-- El color de fondo elegido se aplica después de la hoja de estilos (para pisarla) y antes de dibujar, así no parpadea -->
-<script src="js/color.js?v=20261106.7"></script>
+<script src="js/color.js?v=20261107.1"></script>
 <script>try { ColorFondo.aplicar(ColorFondo.leer()); } catch (e) {}</script>
 </head>
 <body>
@@ -327,6 +327,11 @@
         </div>
       </div>
       <div class="kpis" id="horas-kpis"></div>
+      <div class="caja" id="caja-banco">
+        <h2>Banco de horas (horas a favor)<span class="info" tabindex="0" role="img" aria-label="Horas extra que se guardaron en el banco en vez de liquidarlas. Están en dos columnas, al 50% y al 100%, que no se mezclan. El empleado decide después para qué usarlas: Usar (tiempo libre o cubrir horas que debe) o Pagar (pasan a Pendientes de liquidar)." data-info="Horas extra que se guardaron en el banco en vez de liquidarlas. Están en dos columnas, al 50% y al 100%, que no se mezclan. El empleado decide después para qué usarlas: Usar (tiempo libre o cubrir horas que debe) o Pagar (pasan a Pendientes de liquidar)."></span></h2>
+        <p class="hint" id="banco-resumen" style="margin:-4px 0 10px"></p>
+        <div class="tabla-wrap"><table class="tabla grilla con-nombre" id="tabla-banco"></table></div>
+      </div>
       <div class="caja">
         <h2>Lo que se debe, por empleado<span class="info" tabindex="0" role="img" aria-label="Horas que cada empleado debe devolver todavía, por permisos o días pedidos. Lo que ya devolvió trabajando de más se descuenta; quien no debe nada no aparece." data-info="Horas que cada empleado debe devolver todavía, por permisos o días pedidos. Lo que ya devolvió trabajando de más se descuenta; quien no debe nada no aparece."></span></h2>
         <div class="tabla-wrap"><table class="tabla grilla con-nombre" id="tabla-horas"></table></div>
@@ -514,6 +519,7 @@
       </div>
       <div id="no-vacaciones-wrap" hidden><label for="no-anio">Se descuenta del período<span class="info" tabindex="0" role="img" aria-label="A qué período de vacaciones se le restan estos días. Por defecto, lo tomado de enero a septiembre se descuenta del año anterior (el período va del 1 de octubre al 30 de septiembre)." data-info="A qué período de vacaciones se le restan estos días. Por defecto, lo tomado de enero a septiembre se descuenta del año anterior (el período va del 1 de octubre al 30 de septiembre)."></span></label><select id="no-anio"></select></div>
       <div id="no-compensa-wrap" hidden><label class="check"><input type="checkbox" id="no-compensa"> Son para devolver horas que debe (no se pagan)</label><span class="info" tabindex="0" role="img" aria-label="Marcalo cuando el empleado se queda más tiempo para devolver horas que pidió (un permiso o un día). En vez de horas extra a liquidar, se guarda como &quot;Devolución de horas&quot; y se descuenta de su cuenta de horas." data-info="Marcalo cuando el empleado se queda más tiempo para devolver horas que pidió (un permiso o un día). En vez de horas extra a liquidar, se guarda como &quot;Devolución de horas&quot; y se descuenta de su cuenta de horas."></span></div>
+      <div id="no-banco-wrap" hidden><label class="check"><input type="checkbox" id="no-banco"> Guardarlas en el banco de horas (horas a favor)</label><span class="info" tabindex="0" role="img" aria-label="En vez de liquidarlas en el sueldo ahora, quedan como horas a favor del empleado, en su banco de horas (al 50% o al 100%, según el recargo). Después él decide para qué usarlas: tiempo libre, cubrir horas que debe, o cobrarlas. Se ven en Cuenta de horas → Banco de horas." data-info="En vez de liquidarlas en el sueldo ahora, quedan como horas a favor del empleado, en su banco de horas (al 50% o al 100%, según el recargo). Después él decide para qué usarlas: tiempo libre, cubrir horas que debe, o cobrarlas. Se ven en Cuenta de horas → Banco de horas."></span></div>
       <div id="no-liq-he-wrap" hidden><label for="no-liq-mes">Liquidada en el sueldo de<span class="info" tabindex="0" role="img" aria-label="Mes en que estas horas extra se pagaron en el recibo. Dejalo vacío si todavía no se liquidaron: quedan en Horas extra → Pendientes de liquidar." data-info="Mes en que estas horas extra se pagaron en el recibo. Dejalo vacío si todavía no se liquidaron: quedan en Horas extra → Pendientes de liquidar."></span></label><input id="no-liq-mes" type="month"></div>
       <div id="no-desc-wrap" hidden><label for="no-desc-mes">Descontado en el sueldo de<span class="info" tabindex="0" role="img" aria-label="Mes del sueldo en el que se descontó. Dejalo vacío si todavía no se descontó: queda en Descuentos de sueldo → Pendientes." data-info="Mes del sueldo en el que se descontó. Dejalo vacío si todavía no se descontó: queda en Descuentos de sueldo → Pendientes."></span></label><input id="no-desc-mes" type="month"></div>
       <div id="no-liq-vac-wrap" hidden><label for="no-liq-fecha">Liquidado el<span class="info" tabindex="0" role="img" aria-label="Fecha en que estas vacaciones se liquidaron (nota de vacaciones / pago en el recibo). Dejalo vacío si todavía no. Al cargar una liquidación en Vacaciones, los goces del período se marcan solos." data-info="Fecha en que estas vacaciones se liquidaron (nota de vacaciones / pago en el recibo). Dejalo vacío si todavía no. Al cargar una liquidación en Vacaciones, los goces del período se marcan solos."></span></label><input id="no-liq-fecha" type="date"></div>
@@ -525,6 +531,36 @@
         <button type="button" class="link peligro" id="no-eliminar" hidden style="margin-right:auto">Eliminar</button>
         <button type="button" class="btn-sec" data-cerrar>Cancelar</button>
         <button type="submit" class="btn-sec primario" id="no-guardar" value="ok">Guardar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ Diálogo: usar o pagar horas del banco ============ -->
+<dialog class="dlg" id="dlg-banco">
+  <form method="dialog" id="form-banco" autocomplete="off">
+    <div class="dlg-head">
+      <h3 id="banco-titulo">Banco de horas</h3>
+      <button type="button" class="btn-cerrar" data-cerrar aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <div class="dlg-body">
+      <p class="hint" id="banco-info"></p>
+      <div class="row">
+        <div><label for="banco-recargo">Horas al</label><select id="banco-recargo"><option value="50">50% (días comunes)</option><option value="100">100% (sábado tarde, domingo, feriado)</option></select></div>
+        <div><label for="banco-horas">Cuántas horas</label><input id="banco-horas" type="number" min="0" step="any" placeholder="ej: 2" required></div>
+      </div>
+      <div id="banco-uso-wrap">
+        <label for="banco-para">Para qué se usan</label>
+        <select id="banco-para"><option value="libre">Tiempo libre (un permiso o un día)</option><option value="deuda">Cubrir horas que debe (cuenta de horas)</option></select>
+        <div class="row"><div><label for="banco-fecha">Fecha</label><input id="banco-fecha" type="date"></div></div>
+        <label for="banco-obs">Observación</label><textarea id="banco-obs" placeholder="Opcional"></textarea>
+      </div>
+      <div class="mensaje-error" id="banco-error" role="alert"></div>
+      <div class="dlg-pie">
+        <button type="button" class="btn-sec" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn-sec primario" id="banco-guardar" value="ok">Guardar</button>
       </div>
     </div>
   </form>
@@ -641,26 +677,27 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <!-- Configuración. Los ?v= obligan al navegador a bajar la versión nueva:
      al cambiar cualquier CSS/JS, subir el número en TODAS las líneas. -->
-<script src="js/config.js?v=20261106.7"></script>
+<script src="js/config.js?v=20261107.1"></script>
 <!-- Lógica (sin pantalla) -->
-<script src="js/utils.js?v=20261106.7"></script>
-<script src="js/calculos.js?v=20261106.7"></script>
-<script src="js/api.js?v=20261106.7"></script>
+<script src="js/utils.js?v=20261107.1"></script>
+<script src="js/calculos.js?v=20261107.1"></script>
+<script src="js/api.js?v=20261107.1"></script>
 <!-- Vistas (pantalla) -->
-<script src="js/vistas/acceso.js?v=20261106.7"></script>
-<script src="js/vistas/ficha.js?v=20261106.7"></script>
-<script src="js/vistas/tablero.js?v=20261106.7"></script>
-<script src="js/vistas/empleados.js?v=20261106.7"></script>
-<script src="js/vistas/novedades.js?v=20261106.7"></script>
-<script src="js/vistas/vacaciones.js?v=20261106.7"></script>
-<script src="js/vistas/horas.js?v=20261106.7"></script>
-<script src="js/vistas/horas-extra.js?v=20261106.7"></script>
-<script src="js/vistas/importar-cc.js?v=20261106.7"></script>
-<script src="js/vistas/descuentos.js?v=20261106.7"></script>
-<script src="js/vistas/calendario.js?v=20261106.7"></script>
-<script src="js/vistas/compartidos.js?v=20261106.7"></script>
-<script src="js/vistas/configuracion.js?v=20261106.7"></script>
+<script src="js/vistas/acceso.js?v=20261107.1"></script>
+<script src="js/vistas/ficha.js?v=20261107.1"></script>
+<script src="js/vistas/tablero.js?v=20261107.1"></script>
+<script src="js/vistas/empleados.js?v=20261107.1"></script>
+<script src="js/vistas/novedades.js?v=20261107.1"></script>
+<script src="js/vistas/vacaciones.js?v=20261107.1"></script>
+<script src="js/vistas/banco.js?v=20261107.1"></script>
+<script src="js/vistas/horas.js?v=20261107.1"></script>
+<script src="js/vistas/horas-extra.js?v=20261107.1"></script>
+<script src="js/vistas/importar-cc.js?v=20261107.1"></script>
+<script src="js/vistas/descuentos.js?v=20261107.1"></script>
+<script src="js/vistas/calendario.js?v=20261107.1"></script>
+<script src="js/vistas/compartidos.js?v=20261107.1"></script>
+<script src="js/vistas/configuracion.js?v=20261107.1"></script>
 <!-- Arranque -->
-<script src="js/main.js?v=20261106.7"></script>
+<script src="js/main.js?v=20261107.1"></script>
 </body>
 </html>

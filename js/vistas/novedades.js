@@ -43,8 +43,8 @@
           <td>${fmtFecha(n.fecha_desde)}${n.fecha_hasta !== n.fecha_desde ? `<small>al ${fmtFecha(n.fecha_hasta)}</small>` : ""}</td>
           <td>${esc(nombreEmpleado(e))}<small>${esc(app().sucursalNombre(e && e.sucursal_id))}</small></td>
           <td>${app().chipTipo(n.tipo)}</td>
-          <td class="num">${cantidadTexto(n)}${n.hora ? `<small>${n.tipo === "llegada_tarde" ? "llegó" : "desde"} ${n.hora.slice(0, 5)}</small>` : ""}</td>
-          <td>${esc(n.observacion)}${n.tipo === "horas_extra" ? `<small>${n.liquidado_en ? "Liquidada en " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Sin liquidar"}</small>` : ""}${app().tipo(n.tipo).descuenta_sueldo ? `<small>${n.liquidado_en ? "Descontado en el sueldo de " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Pendiente de descontar"}</small>` : ""}${n.generada_por ? "<small>Generada sola (llegadas tarde)</small>" : ""}</td>
+          <td class="num">${cantidadTexto(n)}${n.banco ? `<small>en el banco${Number(n.banco_usado) ? " (usó " + R.calc.fmtHoras(n.banco_usado) + ")" : ""}</small>` : ""}${n.hora ? `<small>${n.tipo === "llegada_tarde" ? "llegó" : "desde"} ${n.hora.slice(0, 5)}</small>` : ""}</td>
+          <td>${esc(n.observacion)}${n.tipo === "horas_extra" && !n.banco ? `<small>${n.liquidado_en ? "Liquidada en " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Sin liquidar"}</small>` : ""}${app().tipo(n.tipo).descuenta_sueldo ? `<small>${n.liquidado_en ? "Descontado en el sueldo de " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Pendiente de descontar"}</small>` : ""}${n.generada_por ? "<small>Generada sola (llegadas tarde)</small>" : ""}</td>
         </tr>`;
       }).join("") || `<tr><td colspan="5" class="vacio">No hay novedades en ${mesTexto($("novedades-mes").value)} con este filtro.</td></tr>`}</tbody>`;
   }
@@ -88,7 +88,9 @@
     $("no-hora-label").textContent = "Hora de llegada";
     $("no-compensa-wrap").hidden = t.clave !== "horas_extra" || !!editando;
     if (t.clave !== "horas_extra") $("no-compensa").checked = false;
-    $("no-liq-he-wrap").hidden = t.clave !== "horas_extra";
+    $("no-banco-wrap").hidden = t.clave !== "horas_extra";
+    if (t.clave !== "horas_extra") $("no-banco").checked = false;
+    $("no-liq-he-wrap").hidden = t.clave !== "horas_extra" || $("no-banco").checked;   // en el banco no se liquidan
     // Adelantos y compras en cuenta corriente: ambos se descuentan del sueldo, pero son cosas distintas
     $("no-desc-wrap").hidden = !t.descuenta_sueldo;
     $("no-tipo-hint").textContent = { adelanto: "Plata que se le da al empleado por adelantado y se descuenta del sueldo.",
@@ -222,6 +224,7 @@
     $("no-tipo").innerHTML = opcionesTipos(datos.tipo);
     $("no-tipo").value = datos.tipo || "";
     $("no-compensa").checked = false;
+    $("no-banco").checked = !!datos.banco;
     $("no-extra-lista").innerHTML = "";
     $("no-desde").value = datos.fecha_desde || hoy();
     $("no-hasta").value = datos.fecha_hasta || datos.fecha_desde || hoy();
@@ -273,11 +276,13 @@
                   : t.descuenta_sueldo ? ($("no-desc-mes").value ? $("no-desc-mes").value + "-01" : null)
                   : t.descuenta_vacaciones ? ($("no-liq-fecha").value || null) : null,
       recargo: t.clave === "horas_extra" ? Number($("no-recargo").value) : null,
+      banco: t.clave === "horas_extra" && $("no-banco").checked && !compensa,
       anio_vacaciones: t.descuenta_vacaciones ? Number($("no-anio").value) : null,
       con_certificado: t.clave === "licencia_medica" ? $("no-certificado").checked : null,
       observacion: $("no-observacion").value,
     };
     if (!d.empleado_id) return ($("novedad-error").textContent = "Elegí un empleado.");
+    if (editando && editando.banco && !d.banco && Number(editando.banco_usado) > 0) return ($("novedad-error").textContent = "De este depósito ya se usaron horas del banco: no se puede sacar del banco.");
     if (compensa) {
       t = app().tipo("devolucion_horas");
       Object.assign(d, { tipo: t.clave, recargo: null, liquidado_en: null, hora: null,
@@ -321,6 +326,7 @@
       // Cada 3 llegadas tarde acumuladas la base genera una falta: avisarlo
       const falta = creada && creada.tipo === "llegada_tarde" ? await R.api.novedades.generadaPor(creada.id).catch(() => null) : null;
       if (falta) toast(`Novedad cargada. ${falta.observacion}: se registró una falta injustificada el ${fmtFecha(falta.fecha_desde)}.`, "error", 8000);
+      else if (d.banco) toast(lote.length > 1 ? `Se guardaron ${lote.length} días en el banco de horas.` : "Guardado en el banco de horas: quedan como horas a favor.");
       else if (lote.length > 1) toast(`Se cargaron ${lote.length} días${compensa ? " como devolución de horas" : ""}.`);
       else toast(compensa ? "Guardado como devolución de horas: se descontó de su cuenta de horas." : editando ? "Novedad actualizada." : "Novedad cargada.");
       app().refrescar();
@@ -408,7 +414,12 @@
     $("no-extra-lista").addEventListener("change", e => { if (e.target.classList.contains("rx-recargo")) e.target.dataset.manual = "1"; });
     $("no-extra-lista").addEventListener("click", e => { if (e.target.closest(".rx-quitar")) { e.target.closest(".no-extra").remove(); avisoHoras(); } });
     $("no-cantidad").addEventListener("input", () => { if (app().tipo($("no-tipo").value).clave === "horas_extra") ajustarHora(); });
+    $("no-banco").addEventListener("change", () => {
+      if ($("no-banco").checked) $("no-compensa").checked = false;
+      ajustarFormulario(); avisoHoras();
+    });
     $("no-compensa").addEventListener("change", () => {
+      if ($("no-compensa").checked) { $("no-banco").checked = false; ajustarFormulario(); }
       // Al marcarlo, mostrar cómo queda la cuenta de horas
       if (!$("no-compensa").checked) { $("no-horas").hidden = true; return; }
       avisoHoras("devolucion_horas");

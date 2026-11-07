@@ -253,6 +253,29 @@
     return { via: parecidos.length ? "dudoso" : "ninguno", empleado: null, candidatos: parecidos };
   }
 
+  // ---------- Banco de horas: horas extra guardadas como horas a favor, en dos columnas (50% y 100%) ----------
+  // Un depósito es una novedad de horas extra con banco = true; lo que queda es cantidad - banco_usado.
+  function bancoHoras(novedades) {
+    const filas = novedades.filter(n => n.tipo === "horas_extra" && n.banco).map(n => ({
+      n, r: Number(n.recargo) === 100 ? 100 : 50, rem: Math.max(0, (Number(n.cantidad) || 0) - (Number(n.banco_usado) || 0)) })).filter(f => f.rem > 0.005);
+    const suma = r => filas.filter(f => f.r === r).reduce((a, f) => a + f.rem, 0);
+    const h50 = suma(50), h100 = suma(100);
+    return { h50, h100, total: h50 + h100, filas };
+  }
+  // De qué depósitos salen `horas` horas del recargo indicado: las más viejas primero
+  function repartirBanco(novedades, recargo, horas) {
+    const lista = bancoHoras(novedades).filas.filter(f => f.r === recargo)
+      .sort((a, b) => a.n.fecha_desde.localeCompare(b.n.fecha_desde) || a.n.id - b.n.id);
+    let falta = horas; const tomas = [];
+    for (const f of lista) {
+      if (falta <= 0.0001) break;
+      const toma = Math.min(f.rem, falta);
+      tomas.push({ dep: f.n, toma, rem: f.rem });
+      falta -= toma;
+    }
+    return { tomas, faltan: Math.max(0, falta) };
+  }
+
   // Período sin vacaciones que toca [desde, hasta] para un empleado (general o de su sucursal)
   function periodoBloqueado(desde, hasta, empleado) {
     return (R.estado && R.estado.periodos || []).find(p => (!p.sucursal_id || (empleado && p.sucursal_id === empleado.sucursal_id))
@@ -272,5 +295,5 @@
     horasDeNovedad, cuentaHoras, fmtHoras, JORNADA_POR_DEFECTO,
     fmtPesos, cantidadTexto, minutosTarde, recargoSugerido, HORA_ENTRADA_POR_DEFECTO,
     enHoras, sumarHoras, horaEntrada, horasEntre, revisarHorasExtra, periodoBloqueado,
-    leerSaldosCuentaCorriente, emparejarEmpleado };
+    leerSaldosCuentaCorriente, emparejarEmpleado, bancoHoras, repartirBanco };
 })(window.RRHH);

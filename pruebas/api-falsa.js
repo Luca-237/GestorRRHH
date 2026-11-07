@@ -27,6 +27,7 @@
     ["permiso_horas", "Permiso de horas (a devolver)", "horas", false, false, "#7a4a2a", 1],
     ["dia_a_devolver", "Día pedido (a devolver)", "dias", false, true, "#a0522d", 1],
     ["devolucion_horas", "Devolución de horas", "horas", false, false, "#2f6b3a", -1],
+    ["banco_uso", "Uso de horas del banco", "horas", false, false, "#2f6b3a"],
     ["licencia_accidente", "Licencia por accidente", "dias", false, true, "#6b4a8a"],
     ["adelanto", "Adelanto de sueldo (plata adelantada)", "pesos", false, false, "#1f5f8b"], ["compra_cuenta_corriente", "Compra en cuenta corriente (a descontar)", "pesos", false, false, "#8a5a1f"], ["viatico", "Viático", "pesos", false, false, "#3c7a89"],
     ["alta", "Alta laboral", "registro", false, false, "#2f6b3a"], ["baja", "Baja laboral", "registro", false, false, "#7a1f1f"],
@@ -68,6 +69,9 @@
     if (n.tipo !== "horas_extra") n.recargo = null;
     if (!["horas_extra", "llegada_tarde"].includes(n.tipo)) n.hora = null;
     if (n.tipo !== "horas_extra" && !t.descuenta_vacaciones && !t.descuenta_sueldo) n.liquidado_en = null;
+    if (n.tipo !== "horas_extra") n.banco = false;
+    n.banco = !!n.banco;
+    if (n.banco) { n.liquidado_en = null; n.banco_usado = Math.min(Number(n.banco_usado) || 0, Number(n.cantidad) || 0); } else n.banco_usado = 0;
     if (n.liquidado_en === undefined) n.liquidado_en = null;
     if (n.observacion == null) n.observacion = "";
     return n;
@@ -94,6 +98,9 @@
   if (terceraBruno) novedades.push(completar({ id: nuevoId(), empleado_id: 2, tipo: "falta", fecha_desde: terceraBruno.fecha_desde, fecha_hasta: terceraBruno.fecha_desde,
     cantidad: 0, observacion: "Falta injustificada automática — 3 llegadas tarde acumuladas", generada_por: terceraBruno.id, creado_en: new Date().toISOString() }));
   novedades.filter(n => n.tipo === "horas_extra").forEach((n, i) => { n.hora = i ? "16:00" : "08:00"; });
+  // Banco de horas de prueba: dos depósitos al 50% y uno al 100%, uno ya usado en parte
+  [[3, 3, 50, 1], [3, 2, 100, 0], [5, 4, 50, 0]].forEach(([empleado_id, cantidad, recargo, banco_usado], k) => novedades.push(completar({
+    id: nuevoId(), empleado_id, tipo: "horas_extra", fecha_desde: sumarDias(h, -12 + k), cantidad, recargo, banco: true, banco_usado, observacion: "Al banco", creado_en: new Date().toISOString() })));
   const ajustes = [{ id: nuevoId(), empleado_id: 9, anio: R.calc.anioVacacionesDe(h), dias: 3, motivo: "Arrastre período anterior" }];
   const perfil = comoEncargado
     ? { id: "demo-enc", email: "encargado@demo", nombre: "Encargado Demo", rol: "encargado", sucursal_id: 1, activo: true }
@@ -172,7 +179,8 @@
         return copia(n);
       },
       generadaPor: async id => copia(novedades.find(n => n.generada_por === id) || null),
-      horasExtraPendientes: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && !n.liquidado_en)),
+      horasExtraPendientes: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && !n.liquidado_en && !n.banco)),
+      bancoHoras: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && n.banco)),
       horasExtraLiquidadas: mes => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && n.liquidado_en === mes)),
       descuentosPendientes: claves => espera(novedades.filter(n => ve(n.empleado_id) && claves.includes(n.tipo) && !n.liquidado_en)),
       descuentosDelMes: (claves, mes) => espera(novedades.filter(n => ve(n.empleado_id) && claves.includes(n.tipo) && n.liquidado_en === mes)),

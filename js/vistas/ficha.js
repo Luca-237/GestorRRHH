@@ -15,7 +15,7 @@
     if (n.con_certificado === true) partes.push("Con certificado");
     else if (n.con_certificado === false && n.tipo === "licencia_medica") partes.push("Sin certificado");
     if (n.hora) partes.push((n.tipo === "llegada_tarde" ? "Llegó " : "Desde las ") + n.hora.slice(0, 5));
-    if (n.tipo === "horas_extra") partes.push(n.liquidado_en ? "Liquidada en " + R.util.mesTexto(n.liquidado_en.slice(0, 7)) : "Sin liquidar");
+    if (n.tipo === "horas_extra") partes.push(n.banco ? "En el banco de horas" + (Number(n.banco_usado) ? ` (usó ${R.calc.fmtHoras(n.banco_usado)})` : "") : n.liquidado_en ? "Liquidada en " + R.util.mesTexto(n.liquidado_en.slice(0, 7)) : "Sin liquidar");
     if (t.descuenta_vacaciones) partes.push(`Período ${n.anio_vacaciones}` + (n.liquidado_en ? ` · liquidado el ${fmtFecha(n.liquidado_en)}` : " · sin liquidar"));
     if (n.generada_por) partes.push("Generada sola");
     return partes.length ? `<small>${esc(partes.join(" · "))}</small>` : "";
@@ -45,6 +45,7 @@
 
     const tipos = R.estado.tipos;
     const s = R.calc.saldoVacaciones(e, anioVac, novedades, ajustes, tipos);
+    const banco = R.calc.bancoHoras(novedades);
     const saldoTxt = x => x.saldo == null ? "falta la fecha de ingreso" : `quedan ${fmtNum(x.saldo, 1)} de ${fmtNum(x.corresponden + x.ajuste, 1)} días`;
     const periodo = a => `del período ${a} (del 1/10/${a} al 30/9/${a + 1})`;
     const ch = R.calc.cuentaHoras(e, novedades, tipos), fmtH = R.calc.fmtHoras;
@@ -91,6 +92,7 @@
       ${e.notas ? `<p class="hint" style="white-space:pre-line">${esc(e.notas)}</p>` : ""}
       <div class="kpis" style="margin-top:8px">
         <div class="kpi destacado"><div class="etiqueta">Saldo vacaciones ${anioVac}${info(`Días de vacaciones que le quedan ${periodo(anioVac)}. Se calcula así: días que corresponden por antigüedad, más o menos los ajustes, menos los días ya tomados.`)}</div><div class="valor">${s.saldo == null ? "—" : fmtNum(s.saldo, 1)}<small>días</small></div><div class="detalle">${s.saldo == null ? "falta la fecha de ingreso" : `corresponden ${s.corresponden}${s.ajuste ? ` ${s.ajuste > 0 ? "+" : "−"} ${fmtNum(Math.abs(s.ajuste), 1)} de ajuste` : ""} · tomados ${fmtNum(s.tomados, 1)}${s.programados ? ` (${fmtNum(s.programados, 1)} programados)` : ""}`}</div></div>
+        <div class="kpi"><div class="etiqueta">Banco de horas${info("Horas extra guardadas como horas a favor (sin liquidar), en dos columnas: al 50% y al 100%. Se usan o se pagan desde Cuenta de horas.")}</div><div class="valor" style="font-size:26px">${esc(R.calc.fmtHoras(banco.total))}</div><div class="detalle">al 50%: ${esc(R.calc.fmtHoras(banco.h50))} · al 100%: ${esc(R.calc.fmtHoras(banco.h100))}</div></div>
         <div class="kpi"><div class="etiqueta">Cuenta de horas${info("Horas que debe devolver hoy por permisos o días pedidos, descontando lo que ya devolvió. Si dice \"a favor\", devolvió de más.")}</div><div class="valor" style="font-size:26px">${esc(saldoHoras)}</div><div class="detalle">${ch.movimientos.length ? (ch.saldo > 0.005 ? `adeuda ${esc(fmtH(ch.saldo))} en ${ch.pendientes.length} ${ch.pendientes.length === 1 ? "deuda pendiente" : "deudas pendientes"}` : ch.saldo < -0.005 ? "devolvió de más" : "no adeuda nada") : "sin movimientos"}</div></div>
       </div>
       <div class="filtros" style="justify-content:flex-end">

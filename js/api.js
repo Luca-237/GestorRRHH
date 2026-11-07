@@ -8,7 +8,7 @@
     "fecha_ingreso", "fecha_egreso", "activo", "motivo_baja", "telefono", "email", "fecha_nacimiento", "direccion", "obra_social", "banco",
     "contacto_emergencia_nombre", "contacto_emergencia_tel", "notas"];
   const CAMPOS_NOVEDAD = ["empleado_id", "tipo", "fecha_desde", "fecha_hasta", "cantidad", "recargo",
-    "anio_vacaciones", "con_certificado", "observacion", "hora", "liquidado_en"];
+    "anio_vacaciones", "con_certificado", "observacion", "hora", "liquidado_en", "banco", "banco_usado"];
   // Solo se envía (y solo cuando es true) al cargar vacaciones como excepción en un período sin vacaciones
   const CAMPOS_NOVEDAD_ESCRITURA = [...CAMPOS_NOVEDAD, "excepcion_bloqueo"];
   let sb = null;
@@ -138,7 +138,9 @@
     // Falta que generó sola una llegada tarde (cada 3 acumuladas)
     async generadaPor(id) { return chequear(await sb.from("novedades").select(COLS_NOVEDAD).eq("generada_por", id).maybeSingle()); },
     // Horas extra sin liquidar (de cualquier fecha) y las liquidadas en un mes
-    horasExtraPendientes: () => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").is("liquidado_en", null).order("fecha_desde")),
+    horasExtraPendientes: () => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").eq("banco", false).is("liquidado_en", null).order("fecha_desde")),
+    // Depósitos del banco de horas (horas extra guardadas como horas a favor)
+    bancoHoras: () => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").eq("banco", true).order("fecha_desde")),
     horasExtraLiquidadas: mesISO => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").eq("liquidado_en", mesISO).order("fecha_desde")),
     // Adelantos y compras en cuenta corriente: lo pendiente de descontar y lo descontado en el sueldo de un mes
     descuentosPendientes: claves => claves.length ? todo(() => sb.from("novedades").select(COLS_NOVEDAD).in("tipo", claves).is("liquidado_en", null).order("fecha_desde")) : Promise.resolve([]),

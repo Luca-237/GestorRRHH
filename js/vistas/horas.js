@@ -21,6 +21,7 @@
   }
 
   async function mostrar() {
+    R.banco.mostrar();
     $("horas-sub").textContent = `${app().textoSucursal()} · horas que todavía deben devolver los empleados (permisos y días pedidos)`;
     $("horas-kpis").innerHTML = R.util.esqueleto.kpis(2);
     $("tabla-horas").innerHTML = R.util.esqueleto.tabla(5, 4);
@@ -110,6 +111,7 @@
   }
 
   function iniciar() {
+    R.banco.iniciar();
     $("horas-reiniciar").addEventListener("click", reiniciar);
     $("horas-deuda").addEventListener("click", () => R.vistaNovedades.abrirFormulario({ tipo: "permiso_horas" }));
     $("horas-devolucion").addEventListener("click", () => R.vistaNovedades.abrirFormulario({ tipo: "devolucion_horas" }));
