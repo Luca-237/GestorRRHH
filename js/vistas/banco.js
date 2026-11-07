@@ -107,6 +107,7 @@
   function iniciar() {
     $("form-banco").addEventListener("submit", guardar);
     $("caja-banco").addEventListener("click", e => {
+      if (e.target.closest("#banco-nuevo")) return R.vistaNovedades.abrirFormulario({ tipo: "horas_extra", interno: true });
       const u = e.target.closest("[data-banco-usar]"), p = e.target.closest("[data-banco-pagar]"), f = e.target.closest("[data-ficha]");
       if (u) abrir("usar", Number(u.dataset.bancoUsar));
       else if (p) abrir("pagar", Number(p.dataset.bancoPagar));

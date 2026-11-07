@@ -59,13 +59,20 @@
       </tr>`).join("");
 
     const dato = (t, v, ayuda) => `<div><dt>${esc(t)}${ayuda ? info(ayuda) : ""}</dt><dd>${v ? esc(v) : "—"}</dd></div>`;
-    const filasNov = novedades.map(n => `
+    // Novedades = lo que se liquida. Los movimientos internos de horas (permisos, devoluciones, banco) van en su propia tabla
+    const filasNov = novedades.filter(n => !R.calc.esMovimientoInterno(n, tipos)).map(n => `
       <tr class="clic" data-novedad="${n.id}">
         <td>${fmtFecha(n.fecha_desde)}${n.fecha_hasta !== n.fecha_desde ? ` al ${fmtFecha(n.fecha_hasta)}` : ""}</td>
         <td>${app().chipTipo(n.tipo)}</td>
         <td class="num">${cantidadTexto(n)}</td>
         <td>${esc(n.observacion)}${detalle(n)}</td>
       </tr>`).join("");
+
+    const filasBanco = novedades.filter(n => n.banco || n.tipo === "banco_uso").sort((a, b) => b.fecha_desde.localeCompare(a.fecha_desde) || b.id - a.id).map(n => n.tipo === "banco_uso" ? `
+      <tr class="clic" data-novedad="${n.id}"><td>${fmtFecha(n.fecha_desde)}</td><td>Uso del banco</td>
+        <td class="num debe">−${esc(fmtH(n.cantidad))}</td><td>${esc(n.observacion)}</td></tr>` : `
+      <tr class="clic" data-novedad="${n.id}"><td>${fmtFecha(n.fecha_desde)}</td><td>Depósito al ${Number(n.recargo) === 100 ? 100 : 50}%</td>
+        <td class="num a-favor">+${esc(fmtH(n.cantidad))}</td><td>${esc(n.observacion)}<small>${Number(n.banco_usado) ? `usó ${esc(fmtH(n.banco_usado))} · ` : ""}quedan ${esc(fmtH(Math.max(0, n.cantidad - (n.banco_usado || 0))))}</small></td></tr>`).join("");
 
     $("ficha-cuerpo").innerHTML = `
       <dl class="ficha-datos">
@@ -97,6 +104,7 @@
       </div>
       <div class="filtros" style="justify-content:flex-end">
         ${app().esAdmin() ? `<button type="button" class="btn-sec" id="ficha-editar">Editar datos</button>` : ""}
+        <button type="button" class="btn-sec" id="ficha-horas">Registrar horas (movimiento interno)</button>
         <button type="button" class="btn-sec primario" id="ficha-novedad">Cargar novedad</button>
       </div>
       <h2>Novedades</h2>
@@ -104,12 +112,16 @@
         <tbody>${filasNov || `<tr><td colspan="4" class="vacio">Sin novedades cargadas.</td></tr>`}</tbody></table></div>
       <h2 style="margin-top:20px">Cuenta de horas${info("Movimientos de la cuenta, del más nuevo al más viejo. \"Saldo\" es lo que debía después de cada movimiento, como en un resumen de cuenta corriente.")}</h2>
       <div class="tabla-wrap"><table class="tabla grilla"><thead><tr><th>Fecha</th><th>Tipo</th><th class="num">Horas</th><th class="num">Saldo</th><th>Observación</th></tr></thead>
-        <tbody>${filasHoras || `<tr><td colspan="5" class="vacio">Sin movimientos en la cuenta de horas.</td></tr>`}</tbody></table></div>`;
+        <tbody>${filasHoras || `<tr><td colspan="5" class="vacio">Sin movimientos en la cuenta de horas.</td></tr>`}</tbody></table></div>
+      <h2 style="margin-top:20px">Banco de horas${info("Horas extra guardadas como horas a favor (no se liquidan) y los usos que se hicieron. Se usan o se pagan desde Cuenta de horas.")}</h2>
+      <div class="tabla-wrap"><table class="tabla grilla"><thead><tr><th>Fecha</th><th>Movimiento</th><th class="num">Horas</th><th>Detalle</th></tr></thead>
+        <tbody>${filasBanco || `<tr><td colspan="4" class="vacio">Sin movimientos en el banco de horas.</td></tr>`}</tbody></table></div>`;
   }
 
   function iniciar() {
     $("ficha-cuerpo").addEventListener("click", ev => {
       if (ev.target.closest("#ficha-editar")) return R.vistaEmpleados.abrirFormulario(empleadoId);
+      if (ev.target.closest("#ficha-horas")) return R.vistaNovedades.abrirFormulario({ empleado_id: empleadoId, interno: true });
       if (ev.target.closest("#ficha-novedad")) return R.vistaNovedades.abrirFormulario({ empleado_id: empleadoId });
       const fila = ev.target.closest("[data-novedad]");
       if (fila) R.vistaNovedades.editar(Number(fila.dataset.novedad));

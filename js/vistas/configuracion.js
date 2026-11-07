@@ -108,9 +108,9 @@
         <td>${new Date(f.fecha + "T00:00:00Z").toLocaleDateString("es-AR", { weekday: "long", timeZone: "UTC" })}</td>
         <td>${esc(f.descripcion)}</td><td><div class="acciones-fila"><button type="button" class="link peligro" data-feriado-borrar="${f.fecha}">Quitar</button></div></td></tr>`).join("")
       || `<tr><td colspan="4" class="vacio">No hay feriados cargados.</td></tr>`}</tbody>`;
-    $("tabla-tipos").innerHTML = `<thead><tr><th>Tipo</th><th>Se mide en${info("Días: se carga desde/hasta y se cuentan días corridos. Horas o minutos: se carga una fecha y la cantidad.")}</th><th>Ausencia${info("Si es ausencia, el empleado aparece en \"Hoy no están\" y en \"Próximas ausencias\" mientras dure.")}</th><th>Descuenta vacaciones${info("Si descuenta vacaciones, los días se restan del saldo de vacaciones del empleado.")}</th><th>Cuenta de horas${info("Si el tipo suma horas a lo que el empleado debe (ej. un permiso a devolver), las descuenta (ej. una devolución) o no toca la cuenta. Los días se pasan a horas con la jornada del empleado. Ej.: si querés que las llegadas tarde se devuelvan, elegí \"Suma a la deuda\".")}</th><th>Color</th><th></th></tr></thead><tbody>${R.estado.tipos.map(t => `
+    $("tabla-tipos").innerHTML = `<thead><tr><th>Tipo</th><th>Se mide en${info("Días: se carga desde/hasta y se cuentan días corridos. Horas o minutos: se carga una fecha y la cantidad.")}</th><th>Ausencia${info("Si es ausencia, el empleado aparece en \"Hoy no están\", en \"Próximas ausencias\" y marcado en el calendario mientras dure. Se puede cambiar en cualquier tipo.")}</th><th>Descuenta vacaciones${info("Si descuenta vacaciones, los días se restan del saldo de vacaciones del empleado.")}</th><th>Cuenta de horas${info("Si el tipo suma horas a lo que el empleado debe (ej. un permiso a devolver), las descuenta (ej. una devolución) o no toca la cuenta. Los días se pasan a horas con la jornada del empleado. Ej.: si querés que las llegadas tarde se devuelvan, elegí \"Suma a la deuda\".")}</th><th>Color</th><th></th></tr></thead><tbody>${R.estado.tipos.map(t => `
       <tr class="${t.activo ? "" : "inactivo"}"><td>${app().chipTipo(t.clave)}${t.del_sistema ? "<small>De fábrica</small>" : ""}</td>
-      <td>${unidades[t.unidad]}</td><td>${t.es_ausencia ? "Sí" : "No"}</td><td>${t.descuenta_vacaciones ? "Sí" : "No"}</td>
+      <td>${unidades[t.unidad]}</td><td><select data-tipo-ausencia="${esc(t.clave)}" aria-label="Es ausencia: ${esc(t.nombre)}"><option value="1" ${t.es_ausencia ? "selected" : ""}>Sí</option><option value="0" ${t.es_ausencia ? "" : "selected"}>No</option></select></td><td>${t.descuenta_vacaciones ? "Sí" : "No"}</td>
       <td><select data-tipo-cuenta="${esc(t.clave)}" aria-label="Cuenta de horas de ${esc(t.nombre)}">${[[0, "No la toca"], [1, "Suma a la deuda"], [-1, "Descuenta"]]
         .map(([v, txt]) => `<option value="${v}" ${Number(t.cuenta_horas || 0) === v ? "selected" : ""}>${txt}</option>`).join("")}</select></td>
       <td><input type="color" value="${esc(t.color)}" data-tipo-color="${esc(t.clave)}" style="width:44px; padding:2px; height:28px" aria-label="Color de ${esc(t.nombre)}"></td>
@@ -259,6 +259,8 @@
     $("tabla-tipos").addEventListener("change", async e => {
       const clave = e.target.dataset.tipoColor;
       if (clave) return conCatalogos(R.api.tipos.actualizar(clave, { color: e.target.value }), "Color actualizado.");
+      const aus = e.target.dataset.tipoAusencia;
+      if (aus) return conCatalogos(R.api.tipos.actualizar(aus, { es_ausencia: e.target.value === "1" }), e.target.value === "1" ? "Ahora se marca en el calendario." : "Ya no se marca en el calendario.");
       const cuenta = e.target.dataset.tipoCuenta;
       if (cuenta) {
         const t = app().tipo(cuenta), v = Number(e.target.value);

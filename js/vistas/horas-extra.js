@@ -17,7 +17,7 @@
     if (!$("he-mes").value) $("he-mes").value = mesActual();
     if (!$("he-liq-mes").value) $("he-liq-mes").value = mesActual();
     const mes = $("he-mes").value;
-    $("he-sub").textContent = `${app().textoSucursal()} · 50%: días comunes · 100%: sábados desde las 13, domingos y feriados`;
+    $("he-sub").textContent = `${app().textoSucursal()} · 50%: días comunes · 100%: sábados desde las 13, domingos y feriados · hacé clic en Editar para corregir una carga`;
     $("he-kpis").innerHTML = R.util.esqueleto.kpis(3);
     $("tabla-he-pendientes").innerHTML = R.util.esqueleto.tabla(7, 5);
     $("tabla-he-liquidadas").innerHTML = R.util.esqueleto.tabla(5, 4);
@@ -27,7 +27,7 @@
     } catch (e) { $("he-kpis").innerHTML = ""; return toast(e.message, "error", 6000); }
     pendientes = pendientes.filter(n => app().esVisible(n.empleado_id));
     liquidadas = liquidadas.filter(n => app().esVisible(n.empleado_id));
-    revision = R.calc.revisarHorasExtra(todas.filter(n => app().esVisible(n.empleado_id)), R.estado.feriados);
+    revision = R.calc.revisarHorasExtra(todas.filter(n => !n.banco && app().esVisible(n.empleado_id)), R.estado.feriados);
     const paraRevisar = pendientes.filter(n => revision.has(n.id));
 
     const personas = l => new Set(l.map(n => n.empleado_id)).size;
@@ -47,7 +47,7 @@
     const esAdmin = app().esAdmin();
     const porId = new Map(R.estado.empleados.map(e => [e.id, e]));
     $("tabla-he-pendientes").innerHTML = `<thead><tr>${esAdmin ? `<th style="width:34px"><input type="checkbox" id="he-todas" aria-label="Seleccionar todas"></th>` : ""}
-      <th>Fecha</th><th>Empleado</th><th class="num">Desde</th><th class="num">Horas</th><th class="num">Recargo</th><th>Observación</th></tr></thead>
+      <th>Fecha</th><th>Empleado</th><th class="num">Desde</th><th class="num">Horas</th><th class="num">Recargo</th><th>Observación</th><th></th></tr></thead>
       <tbody>${pendientes.map(n => {
         const e = porId.get(n.empleado_id);
         return `<tr data-novedad="${n.id}">
@@ -58,8 +58,9 @@
           <td class="num">${esc(horas(R.calc.enHoras(n.cantidad)))}${marca(n.id)}</td>
           <td class="num">${n.recargo ? n.recargo + "%" : "—"}</td>
           <td style="white-space:pre-line">${esc(n.observacion)}</td>
+          <td><button type="button" class="link" data-editar="${n.id}">Editar</button></td>
         </tr>`;
-      }).join("") || `<tr><td colspan="7" class="vacio">No hay horas extra pendientes de liquidar.</td></tr>`}</tbody>`;
+      }).join("") || `<tr><td colspan="8" class="vacio">No hay horas extra pendientes de liquidar.</td></tr>`}</tbody>`;
     actualizarSeleccion();
 
     // ---------- Liquidadas en el mes, por empleado ----------
@@ -70,7 +71,7 @@
       <tbody>${filas.map(({ e, l }) => `<tr class="clic" data-empleado="${e ? e.id : ""}">
         <td>${esc(nombreEmpleado(e))}<small>${esc(app().sucursalNombre(e && e.sucursal_id))}</small></td>
         <td class="num">${horas(suma(l, 50))}</td><td class="num">${horas(suma(l, 100))}</td><td class="num"><strong>${horas(suma(l))}</strong></td>
-        <td><small>${l.map(n => `${fmtFecha(n.fecha_desde)}: ${horas(R.calc.enHoras(n.cantidad))} al ${n.recargo}%`).join(" · ")}</small>${l.some(n => revision.has(n.id)) ? `<span class="marca-revisar" tabindex="0" data-info="${esc(l.filter(n => revision.has(n.id)).map(n => fmtFecha(n.fecha_desde) + ": " + revision.get(n.id).join(" ")).join(" · "))}">Revisar</span>` : ""}</td>
+        <td><small>${l.map(n => `<button type="button" class="link" data-editar="${n.id}" title="Editar esta carga">${fmtFecha(n.fecha_desde)}: ${horas(R.calc.enHoras(n.cantidad))} al ${n.recargo}%</button>`).join(" · ")}</small>${l.some(n => revision.has(n.id)) ? `<span class="marca-revisar" tabindex="0" data-info="${esc(l.filter(n => revision.has(n.id)).map(n => fmtFecha(n.fecha_desde) + ": " + revision.get(n.id).join(" ")).join(" · "))}">Revisar</span>` : ""}</td>
       </tr>`).join("") || `<tr><td colspan="5" class="vacio">No se liquidaron horas extra en el sueldo de ${mesTexto(mes)}.</td></tr>`}</tbody>`;
   }
 

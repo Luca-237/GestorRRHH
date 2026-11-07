@@ -7,13 +7,15 @@
   const app = () => R.app;
   let lista = [];      // novedades del mes mostradas
   let editando = null; // novedad que se está editando
+  let modoInterno = false; // el formulario carga horas de movimiento interno (permisos, devoluciones, banco), no una novedad para liquidar
+  const tipoInterno = t => Number(t.cuenta_horas) !== 0 || t.clave === "banco_uso";
 
   const cantidadTexto = n => R.calc.cantidadTexto(n, app().tipo(n.tipo));
 
   function pintarFiltros() {
     const tipo = $("novedades-tipo").value, emp = $("novedades-empleado").value;
     $("novedades-tipo").innerHTML = `<option value="">Todos</option>` +
-      R.estado.tipos.map(t => `<option value="${esc(t.clave)}">${esc(t.nombre)}</option>`).join("");
+      R.estado.tipos.filter(t => !tipoInterno(t)).map(t => `<option value="${esc(t.clave)}">${esc(t.nombre)}</option>`).join("");
     $("novedades-tipo").value = tipo;
     $("novedades-empleado").innerHTML = app().opcionesEmpleados(emp || null, { vacia: "Todos" });
     if (![...$("novedades-empleado").options].some(o => o.value === emp)) $("novedades-empleado").value = "";
@@ -24,7 +26,7 @@
     pintarFiltros();
     const { desde, hasta } = rangoMes($("novedades-mes").value);
     $("tabla-novedades").innerHTML = R.util.esqueleto.tabla(5, 8);
-    try { lista = await R.api.novedades.entre(desde, hasta); }
+    try { lista = (await R.api.novedades.entre(desde, hasta)).filter(n => !R.calc.esMovimientoInterno(n)); }
     catch (e) { lista = []; toast(e.message, "error", 6000); }
     pintar();
   }
@@ -58,9 +60,10 @@
     ["Registros", ["cambio_obra_social", "alta", "baja"]],
   ];
   function opcionesTipos(actual) {
-    const disponibles = R.estado.tipos.filter(t => t.activo || t.clave === actual);
+    // Las novedades son lo que se liquida; las horas de movimiento interno se cargan desde la ficha / Cuenta de horas
+    const disponibles = R.estado.tipos.filter(t => t.clave === actual || (t.activo && (modoInterno ? (tipoInterno(t) && t.clave !== "banco_uso") || t.clave === "horas_extra" : !tipoInterno(t))));
     const usados = new Set(GRUPOS_TIPOS.flatMap(g => g[1]));
-    const op = t => `<option value="${esc(t.clave)}">${esc(t.nombre)}</option>`;
+    const op = t => `<option value="${esc(t.clave)}">${esc(modoInterno && t.clave === "horas_extra" ? "Horas extra al banco (horas a favor)" : t.nombre)}</option>`;
     const grupos = GRUPOS_TIPOS.map(([nombre, claves]) => [nombre, claves.map(c => disponibles.find(t => t.clave === c)).filter(Boolean)]);
     grupos.push(["Otros", disponibles.filter(t => !usados.has(t.clave))]);
     return `<option value="" disabled>Elegí el tipo</option>` + grupos.filter(g => g[1].length)
@@ -86,14 +89,14 @@
     const conHora = t.clave === "llegada_tarde";
     $("no-hora-wrap").hidden = !conHora;
     $("no-hora-label").textContent = "Hora de llegada";
-    $("no-compensa-wrap").hidden = t.clave !== "horas_extra" || !!editando;
-    if (t.clave !== "horas_extra") $("no-compensa").checked = false;
-    $("no-banco-wrap").hidden = t.clave !== "horas_extra";
-    if (t.clave !== "horas_extra") $("no-banco").checked = false;
+    $("no-compensa-wrap").hidden = true;      // devolver horas es un movimiento interno: se carga desde la ficha o Cuenta de horas
+    $("no-compensa").checked = false;
+    $("no-banco-wrap").hidden = true;          // al banco van las horas cargadas como movimiento interno
+    $("no-banco").checked = modoInterno && t.clave === "horas_extra";
     $("no-liq-he-wrap").hidden = t.clave !== "horas_extra" || $("no-banco").checked;   // en el banco no se liquidan
     // Adelantos y compras en cuenta corriente: ambos se descuentan del sueldo, pero son cosas distintas
     $("no-desc-wrap").hidden = !t.descuenta_sueldo;
-    $("no-tipo-hint").textContent = { adelanto: "Plata que se le da al empleado por adelantado y se descuenta del sueldo.",
+    $("no-tipo-hint").textContent = modoInterno && t.clave === "horas_extra" ? "Quedan en el banco de horas del empleado, como horas a favor. No se liquidan: después decide si usarlas o cobrarlas." : { adelanto: "Plata que se le da al empleado por adelantado y se descuenta del sueldo.",
       compra_cuenta_corriente: "Mercadería que compró en la tienda y paga después: se descuenta del sueldo.",
       viatico: "Se paga al empleado; no se descuenta." }[t.clave] || "";
     $("no-liq-vac-wrap").hidden = !t.descuenta_vacaciones;
@@ -218,8 +221,9 @@
 
   function abrirFormulario(datos = {}) {
     editando = datos.id ? datos : null;
+    modoInterno = datos.id ? R.calc.esMovimientoInterno(datos) : !!datos.interno;
     saldoCache = { id: null, cuenta: null }; // la cuenta puede haber cambiado desde la última vez
-    $("dlg-novedad-titulo").textContent = editando ? "Editar novedad" : "Cargar novedad";
+    $("dlg-novedad-titulo").textContent = modoInterno ? (editando ? "Editar horas (movimiento interno)" : "Registrar horas (movimiento interno)") : (editando ? "Editar novedad" : "Cargar novedad");
     $("no-empleado").innerHTML = app().opcionesEmpleados(datos.empleado_id ?? null, { vacia: "Elegí un empleado" });
     $("no-tipo").innerHTML = opcionesTipos(datos.tipo);
     $("no-tipo").value = datos.tipo || "";

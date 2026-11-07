@@ -276,6 +276,14 @@
     return { tomas, faltan: Math.max(0, falta) };
   }
 
+  // Movimiento interno de horas (no es una novedad para liquidar): permisos y devoluciones de horas, días a devolver
+  // (los tipos que tocan la cuenta de horas) y todo lo del banco de horas (depósitos y usos).
+  // Las novedades son solo lo que se liquida; esto se ve en la ficha del empleado y en Cuenta de horas.
+  function esMovimientoInterno(n, tipos) {
+    const t = ((tipos || R.estado.tipos) || []).find(x => x.clave === n.tipo);
+    return !!(n.banco || n.tipo === "banco_uso" || (t && Number(t.cuenta_horas) !== 0));
+  }
+
   // Período sin vacaciones que toca [desde, hasta] para un empleado (general o de su sucursal)
   function periodoBloqueado(desde, hasta, empleado) {
     return (R.estado && R.estado.periodos || []).find(p => (!p.sucursal_id || (empleado && p.sucursal_id === empleado.sucursal_id))
@@ -295,5 +303,5 @@
     horasDeNovedad, cuentaHoras, fmtHoras, JORNADA_POR_DEFECTO,
     fmtPesos, cantidadTexto, minutosTarde, recargoSugerido, HORA_ENTRADA_POR_DEFECTO,
     enHoras, sumarHoras, horaEntrada, horasEntre, revisarHorasExtra, periodoBloqueado,
-    leerSaldosCuentaCorriente, emparejarEmpleado, bancoHoras, repartirBanco };
+    leerSaldosCuentaCorriente, emparejarEmpleado, bancoHoras, repartirBanco, esMovimientoInterno };
 })(window.RRHH);

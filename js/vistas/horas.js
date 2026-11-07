@@ -113,8 +113,8 @@
   function iniciar() {
     R.banco.iniciar();
     $("horas-reiniciar").addEventListener("click", reiniciar);
-    $("horas-deuda").addEventListener("click", () => R.vistaNovedades.abrirFormulario({ tipo: "permiso_horas" }));
-    $("horas-devolucion").addEventListener("click", () => R.vistaNovedades.abrirFormulario({ tipo: "devolucion_horas" }));
+    $("horas-deuda").addEventListener("click", () => R.vistaNovedades.abrirFormulario({ tipo: "permiso_horas", interno: true }));
+    $("horas-devolucion").addEventListener("click", () => R.vistaNovedades.abrirFormulario({ tipo: "devolucion_horas", interno: true }));
     $("vista-horas").addEventListener("click", e => {
       const nov = e.target.closest("[data-novedad]");
       if (nov) return R.vistaNovedades.editar(Number(nov.dataset.novedad));

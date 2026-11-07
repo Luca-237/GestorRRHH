@@ -84,7 +84,7 @@
       ...(verAus ? ausencias.map(n => {
         const emp = app().empleado(n.empleado_id), t = app().tipo(n.tipo), dura = n.fecha_hasta !== n.fecha_desde;
         const quien = emp ? `${emp.apellido}${emp.nombre ? " " + emp.nombre[0] + "." : ""}` : "?";
-        return { desde: n.fecha_desde, hasta: n.fecha_hasta, color: t.color, orden: 1, texto: dura ? `${quien} · ${t.nombre}` : quien, dato: `data-empleado="${n.empleado_id}"`,
+        return { desde: n.fecha_desde, hasta: n.fecha_hasta, color: t.color, orden: 1, texto: dura ? `${quien} · ${t.nombre}` : t.unidad !== "dias" ? `${quien} · ${t.nombre} ${R.calc.cantidadTexto(n, t)}` : quien, dato: `data-empleado="${n.empleado_id}"`,
           ayuda: `${nombreEmpleado(emp)} · ${t.nombre} · ${rango(n.fecha_desde, n.fecha_hasta)}${emp ? " · " + app().sucursalNombre(emp.sucursal_id) : ""}` };
       }) : []),
     ].sort((a, b) => a.desde.localeCompare(b.desde) || b.hasta.localeCompare(a.hasta) || a.orden - b.orden || a.texto.localeCompare(b.texto));
