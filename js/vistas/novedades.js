@@ -46,7 +46,7 @@
           <td>${esc(nombreEmpleado(e))}<small>${esc(app().sucursalNombre(e && e.sucursal_id))}</small></td>
           <td>${app().chipTipo(n.tipo)}</td>
           <td class="num">${cantidadTexto(n)}${n.banco ? `<small>en el banco${Number(n.banco_usado) ? " (usó " + R.calc.fmtHoras(n.banco_usado) + ")" : ""}</small>` : ""}${n.hora ? `<small>${n.tipo === "llegada_tarde" ? "llegó" : "desde"} ${n.hora.slice(0, 5)}</small>` : ""}</td>
-          <td>${esc(n.observacion)}${n.tipo === "horas_extra" && !n.banco ? `<small>${n.liquidado_en ? "Liquidada en " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Sin liquidar"}</small>` : ""}${app().tipo(n.tipo).descuenta_sueldo ? `<small>${n.liquidado_en ? "Descontado en el sueldo de " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Pendiente de descontar"}</small>` : ""}${n.generada_por ? "<small>Generada sola (llegadas tarde)</small>" : ""}</td>
+          <td>${esc(n.observacion)}${n.tipo === "horas_extra" && !n.banco ? `<small>${n.compensado ? "Compensada (no se liquida)" : n.liquidado_en ? "Liquidada en " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Sin liquidar"}</small>` : ""}${app().tipo(n.tipo).descuenta_sueldo ? `<small>${n.liquidado_en ? "Descontado en el sueldo de " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Pendiente de descontar"}</small>` : ""}${n.generada_por ? "<small>Generada sola (llegadas tarde)</small>" : ""}</td>
         </tr>`;
       }).join("") || `<tr><td colspan="5" class="vacio">No hay novedades en ${mesTexto($("novedades-mes").value)} con este filtro.</td></tr>`}</tbody>`;
   }

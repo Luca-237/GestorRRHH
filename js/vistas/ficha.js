@@ -15,7 +15,7 @@
     if (n.con_certificado === true) partes.push("Con certificado");
     else if (n.con_certificado === false && n.tipo === "licencia_medica") partes.push("Sin certificado");
     if (n.hora) partes.push((n.tipo === "llegada_tarde" ? "Llegó " : "Desde las ") + n.hora.slice(0, 5));
-    if (n.tipo === "horas_extra") partes.push(n.banco ? "En la billetera de horas" + (Number(n.banco_usado) ? ` (usó ${R.calc.fmtHoras(n.banco_usado)})` : "") : n.liquidado_en ? "Liquidada en " + R.util.mesTexto(n.liquidado_en.slice(0, 7)) : "Sin liquidar");
+    if (n.tipo === "horas_extra") partes.push(n.banco ? "En la billetera de horas" + (Number(n.banco_usado) ? ` (usó ${R.calc.fmtHoras(n.banco_usado)})` : "") : n.compensado ? "Compensada (no se liquida)" : n.liquidado_en ? "Liquidada en " + R.util.mesTexto(n.liquidado_en.slice(0, 7)) : "Sin liquidar");
     if (t.descuenta_vacaciones) partes.push(`Período ${n.anio_vacaciones}` + (n.liquidado_en ? ` · liquidado el ${fmtFecha(n.liquidado_en)}` : " · sin liquidar"));
     if (n.generada_por) partes.push("Generada sola");
     return partes.length ? `<small>${esc(partes.join(" · "))}</small>` : "";

@@ -71,6 +71,8 @@
     if (n.tipo !== "horas_extra" && !t.descuenta_vacaciones && !t.descuenta_sueldo) n.liquidado_en = null;
     if (n.tipo !== "horas_extra") n.banco = false;
     n.banco = !!n.banco;
+    n.compensado = n.tipo === "horas_extra" && !!n.compensado;
+    if (n.compensado) { n.liquidado_en = null; n.banco = false; }
     if (n.banco) { n.liquidado_en = null; n.banco_usado = Math.min(Number(n.banco_usado) || 0, Number(n.cantidad) || 0); } else n.banco_usado = 0;
     if (n.liquidado_en === undefined) n.liquidado_en = null;
     if (n.observacion == null) n.observacion = "";
@@ -179,7 +181,9 @@
         return copia(n);
       },
       generadaPor: async id => copia(novedades.find(n => n.generada_por === id) || null),
-      horasExtraPendientes: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && !n.liquidado_en && !n.banco)),
+      horasExtraPendientes: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && !n.liquidado_en && !n.banco && !n.compensado)),
+      horasExtraCompensadas: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && n.compensado)),
+      compensar: async (ids, valor) => { novedades.filter(n => ids.includes(n.id)).forEach(n => { n.compensado = !!valor; if (valor) n.liquidado_en = null; }); },
       bancoHoras: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && n.banco)),
       horasExtraLiquidadas: mes => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && n.liquidado_en === mes)),
       descuentosPendientes: claves => espera(novedades.filter(n => ve(n.empleado_id) && claves.includes(n.tipo) && !n.liquidado_en)),

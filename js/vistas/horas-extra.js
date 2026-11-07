@@ -17,17 +17,18 @@
     if (!$("he-mes").value) $("he-mes").value = mesActual();
     if (!$("he-liq-mes").value) $("he-liq-mes").value = mesActual();
     const mes = $("he-mes").value;
-    $("he-sub").textContent = `${app().textoSucursal()} · 50%: días comunes · 100%: sábados desde las 13, domingos y feriados · hacé clic en Editar para corregir una carga`;
+    $("he-sub").textContent = `${app().textoSucursal()} · 50%: días comunes · 100%: sábados desde las 13, domingos y feriados · Editar corrige una carga y Compensado la saca de pendientes sin liquidarla`;
     $("he-kpis").innerHTML = R.util.esqueleto.kpis(3);
     $("tabla-he-pendientes").innerHTML = R.util.esqueleto.tabla(7, 5);
     $("tabla-he-liquidadas").innerHTML = R.util.esqueleto.tabla(5, 4);
-    let liquidadas, todas;
+    let liquidadas, todas, compensadas;
     try {
-      [pendientes, liquidadas, todas] = await Promise.all([R.api.novedades.horasExtraPendientes(), R.api.novedades.horasExtraLiquidadas(mes + "-01"), R.api.novedades.deTipos(["horas_extra"])]);
+      [pendientes, liquidadas, todas, compensadas] = await Promise.all([R.api.novedades.horasExtraPendientes(), R.api.novedades.horasExtraLiquidadas(mes + "-01"), R.api.novedades.deTipos(["horas_extra"]), R.api.novedades.horasExtraCompensadas()]);
     } catch (e) { $("he-kpis").innerHTML = ""; return toast(e.message, "error", 6000); }
     pendientes = pendientes.filter(n => app().esVisible(n.empleado_id));
     liquidadas = liquidadas.filter(n => app().esVisible(n.empleado_id));
-    revision = R.calc.revisarHorasExtra(todas.filter(n => !n.banco && app().esVisible(n.empleado_id)), R.estado.feriados);
+    compensadas = compensadas.filter(n => app().esVisible(n.empleado_id));
+    revision = R.calc.revisarHorasExtra(todas.filter(n => !n.banco && !n.compensado && app().esVisible(n.empleado_id)), R.estado.feriados);
     const paraRevisar = pendientes.filter(n => revision.has(n.id));
 
     const personas = l => new Set(l.map(n => n.empleado_id)).size;
@@ -58,10 +59,20 @@
           <td class="num">${esc(horas(R.calc.enHoras(n.cantidad)))}${marca(n.id)}</td>
           <td class="num">${n.recargo ? n.recargo + "%" : "—"}</td>
           <td style="white-space:pre-line">${esc(n.observacion)}</td>
-          <td><button type="button" class="link" data-editar="${n.id}">Editar</button></td>
+          <td><div class="acciones-fila"><button type="button" class="link" data-editar="${n.id}">Editar</button>${esAdmin ? `<button type="button" class="link" data-compensar="${n.id}" title="Ya se compensó de otra forma: sale de pendientes sin liquidarse">Compensado</button>` : ""}</div></td>
         </tr>`;
       }).join("") || `<tr><td colspan="8" class="vacio">No hay horas extra pendientes de liquidar.</td></tr>`}</tbody>`;
     actualizarSeleccion();
+
+    // ---------- Compensadas (no se liquidan) ----------
+    $("he-comp-titulo").textContent = `Compensadas (${compensadas.length})${compensadas.length ? " · " + horas(suma(compensadas)) : ""}`;
+    $("tabla-he-compensadas").innerHTML = `<thead><tr><th>Fecha</th><th>Empleado</th><th class="num">Horas</th><th class="num">Recargo</th><th>Observación</th><th></th></tr></thead>
+      <tbody>${compensadas.map(n => { const e = porId.get(n.empleado_id); return `<tr>
+        <td class="clic" data-editar="${n.id}" style="cursor:pointer">${fmtFecha(n.fecha_desde)}</td>
+        <td>${esc(nombreEmpleado(e))}<small>${esc(app().sucursalNombre(e && e.sucursal_id))}</small></td>
+        <td class="num">${esc(horas(R.calc.enHoras(n.cantidad)))}</td><td class="num">${n.recargo ? n.recargo + "%" : "—"}</td>
+        <td style="white-space:pre-line">${esc(n.observacion)}</td>
+        <td>${esAdmin ? `<button type="button" class="link" data-descompensar="${n.id}">Deshacer</button>` : ""}</td></tr>`; }).join("") || `<tr><td colspan="6" class="vacio">No hay horas extra compensadas.</td></tr>`}</tbody>`;
 
     // ---------- Liquidadas en el mes, por empleado ----------
     const grupos = new Map();
@@ -80,6 +91,7 @@
   function actualizarSeleccion() {
     const ids = seleccionadas(), l = pendientes.filter(n => ids.includes(n.id));
     $("he-liq-btn").disabled = !ids.length;
+    $("he-comp-btn").disabled = !ids.length;
     $("he-liq-resumen").textContent = ids.length ? `${ids.length} seleccionadas · ${horas(suma(l))} (50%: ${horas(suma(l, 50))} · 100%: ${horas(suma(l, 100))})` : "Tildá las horas que entran en ese sueldo.";
   }
 
@@ -97,7 +109,20 @@
     } catch (e) { toast(e.message, "error", 6000); $("he-liq-btn").disabled = false; }
   }
 
+  // Compensar: las horas salen de pendientes sin liquidarse (o vuelven, con Deshacer)
+  async function compensar(ids, valor) {
+    if (!ids.length) return;
+    const l = pendientes.filter(n => ids.includes(n.id));
+    if (valor && !await R.util.confirmar(`¿Marcar ${ids.length} ${ids.length === 1 ? "registro" : "registros"} (${horas(suma(l))}) como compensados? Salen de Pendientes de liquidar y no se pagan en ningún sueldo. Se puede deshacer desde "Compensadas".`, { titulo: "Marcar como compensadas", aceptar: "Compensadas" })) return;
+    try {
+      await R.api.novedades.compensar(ids, valor);
+      toast(valor ? "Marcadas como compensadas: salieron de pendientes." : "Volvieron a Pendientes de liquidar.");
+      mostrar();
+    } catch (e) { toast(e.message, "error", 6000); }
+  }
+
   function iniciar() {
+    $("he-comp-btn").addEventListener("click", () => compensar(seleccionadas(), true));
     $("he-mes").addEventListener("change", mostrar);
     $("he-nueva").addEventListener("click", () => R.vistaNovedades.abrirFormulario({ tipo: "horas_extra" }));
     $("form-he-liquidar").addEventListener("submit", liquidar);
@@ -106,6 +131,9 @@
       if (e.target.id === "he-todas" || e.target.classList.contains("he-check")) actualizarSeleccion();
     });
     $("vista-horas-extra").addEventListener("click", e => {
+      const co = e.target.closest("[data-compensar]"), de = e.target.closest("[data-descompensar]");
+      if (co) return compensar([Number(co.dataset.compensar)], true);
+      if (de) return compensar([Number(de.dataset.descompensar)], false);
       const ed = e.target.closest("[data-editar]");
       if (ed) return R.vistaNovedades.editar(Number(ed.dataset.editar));
       const f = e.target.closest("[data-empleado]");
