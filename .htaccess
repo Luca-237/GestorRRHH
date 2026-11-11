@@ -7,7 +7,7 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 # 2) No servir los archivos internos del proyecto
 #    (la carpeta .git la crea el despliegue de Ferozo y tiene el historial completo)
 RedirectMatch 404 /\.git
-RewriteRule "^(supabase|pruebas|datos-privados)(/|$)" - [R=404,L]
+RewriteRule "^(supabase|pruebas|datos-privados|backup)(/|$)" - [R=404,L]
 <FilesMatch "(\.md|\.bat|\.json|\.txt|\.csv|\.xlsx|\.sql|\.gitignore|\.htpasswd.*)$">
   Require all denied
 </FilesMatch>

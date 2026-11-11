@@ -235,5 +235,10 @@
     resetearPassword: (id, password) => usuarios.llamar("resetear_password", { id, password }),
   };
 
-  R.api = { configurado, iniciar, auth, sucursales, puestos, tipos, empleados, novedades, liquidaciones, feriados, eventos, compartidos, periodos, ajustes, usuarios };
+  // Backup diario: lo hace un script en la PC; acá solo se lee cómo salió (solo admin)
+  const backups = {
+    async ultimos(n = 10) { return chequear(await sb.from("backups_registro").select("*").order("fecha", { ascending: false }).limit(n)); },
+  };
+
+  R.api = { configurado, iniciar, auth, sucursales, puestos, tipos, empleados, novedades, liquidaciones, feriados, eventos, compartidos, periodos, ajustes, usuarios, backups };
 })(window.RRHH);

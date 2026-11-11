@@ -140,11 +140,33 @@
   }
   function ponerColor(hex) { C().aplicar(hex); C().guardar(hex); pintarApariencia(); }
 
+  // ---------- Backup diario: los últimos registros (los anota el script de la PC) ----------
+  async function cargarBackups() {
+    let lista;
+    try { lista = await R.api.backups.ultimos(); }
+    catch (e) {
+      $("cfg-backup-estado").textContent = /backups_registro|does not exist|schema cache/i.test(e.message) ? "Falta correr la migración del backup diario." : e.message;
+      $("tabla-backups").innerHTML = ""; return;
+    }
+    const ok = lista.find(b => b.estado === "ok");
+    const horas = ok ? (Date.now() - new Date(ok.fecha).getTime()) / 3600000 : null;
+    $("cfg-backup-estado").innerHTML = !lista.length ? "Todavía no se hizo ningún backup."
+      : !ok ? `<strong style="color:var(--alerta)">Ningún backup salió bien todavía.</strong>`
+      : horas > 36 ? `<strong style="color:var(--alerta)">El último backup bueno es del ${esc(fechaHora(ok.fecha))}: hace más de un día que no se hace.</strong> Revisá que la PC de RRHH esté prendida y con Google Drive abierto.`
+      : `Último backup bueno: ${esc(fechaHora(ok.fecha))} (${esc(ok.archivo || "")}).`;
+    const filas = b => b.filas ? `${b.filas.empleados ?? 0} empleados · ${b.filas.novedades ?? 0} novedades` : "";
+    $("tabla-backups").innerHTML = lista.length ? `<thead><tr><th>Fecha</th><th>Estado</th><th>Archivo</th><th>Contenido</th><th class="num">Tamaño</th></tr></thead><tbody>${lista.map(b => `
+      <tr><td>${esc(fechaHora(b.fecha))}</td><td>${b.estado === "ok" ? "Bien" : `<strong style="color:var(--alerta)">Falló</strong>`}${b.origen === "manual" ? "<small>a mano</small>" : ""}</td>
+      <td>${esc(b.archivo || "")}${b.error ? `<small>${esc(b.error)}</small>` : ""}</td><td>${esc(filas(b))}</td>
+      <td class="num">${b.bytes ? Math.round(b.bytes / 1024) + " KB" : ""}</td></tr>`).join("")}</tbody>` : "";
+  }
+
   function mostrar() {
     pintarApariencia();
     pintarSelectNuevo();
     pintarCatalogos();
     cargarUsuarios();
+    cargarBackups();
   }
 
   function iniciar() {

@@ -264,6 +264,12 @@
       },
       eliminar: async id => { liquidaciones.splice(liquidaciones.findIndex(l => l.id === id), 1); },
     },
+    backups: {
+      ultimos: async () => copia([
+        { id: 2, fecha: new Date(Date.now() - 3 * 3600000).toISOString(), estado: "ok", archivo: "backup-rrhh-cindy-demo.xlsx", filas: { empleados: empleados.length, novedades: novedades.length }, bytes: 48213, origen: "programado" },
+        { id: 1, fecha: new Date(Date.now() - 27 * 3600000).toISOString(), estado: "error", archivo: "backup-rrhh-cindy-demo-ayer.xlsx", error: "No existe G:\\Mi unidad: ¿está abierto Google Drive para escritorio?", origen: "programado" },
+      ]),
+    },
     eventos: {
       entre: (desde, hasta) => espera(eventosDemo.filter(e => e.fecha_desde <= hasta && e.fecha_hasta >= desde)),
       crear: async d => { const e = { id: nuevoId(), ...d }; eventosDemo.push(e); return copia(e); },
