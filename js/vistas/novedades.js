@@ -173,7 +173,7 @@
     if (!e) { el.textContent = signo > 0 ? "Estas horas se suman a la cuenta de horas que el empleado debe." : "Estas horas se descuentan de la cuenta de horas que el empleado debe."; return; }
     const d = $("no-desde").value, h = $("no-hasta").value;
     const cantidad = t.unidad === "dias" ? (d && h && h >= d ? diasEntre(d, h) : 0) : (Number($("no-cantidad").value) || 0) + (t.unidad === "horas" && !editando ? sumaExtras() : 0);
-    const mov = R.calc.horasDeNovedad({ cantidad }, t, e) * signo;
+    const mov = R.calc.horasDeNovedad({ cantidad, fecha_desde: d, fecha_hasta: h }, t, e) * signo;
     const mio = ++pedido;
     if (saldoCache.id !== id) {
       el.textContent = "Calculando la cuenta de horas…";
@@ -189,7 +189,7 @@
     }
     const fmtH = R.calc.fmtHoras;
     const txt = x => Math.abs(x) < 0.005 ? "0 h" : x > 0 ? `debe ${fmtH(x)}` : `tiene ${fmtH(x)} a favor`;
-    const dias = t.unidad === "dias" ? ` (${fmtNum(cantidad)} ${cantidad === 1 ? "día" : "días"} × jornada de ${fmtNum(Number(e.jornada_horas) || R.calc.JORNADA_POR_DEFECTO, 1)} h)` : "";
+    const dias = t.unidad === "dias" ? ` (${fmtNum(cantidad)} ${cantidad === 1 ? "día" : "días"} × jornada de ${fmtNum(Number(e.jornada_horas) || R.calc.JORNADA_POR_DEFECTO, 1)} h; los sábados valen ${R.calc.JORNADA_SABADO} h)` : "";
     el.innerHTML = `Cuenta de horas de ${esc(e.nombre || e.apellido)}: hoy <strong>${esc(txt(saldo))}</strong>.` +
       (mov ? ` Este movimiento ${signo > 0 ? "suma" : "descuenta"} ${esc(fmtH(mov))}${esc(dias)} → queda: <strong>${esc(txt(saldo + mov))}</strong>.` : "");
   }

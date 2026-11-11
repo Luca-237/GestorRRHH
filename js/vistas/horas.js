@@ -47,7 +47,7 @@
     // ---------- Lo que se debe, por empleado ----------
     const conSucursal = !R.estado.filtroSucursal;
     $("tabla-horas").innerHTML = `<thead><tr><th>Empleado</th>${conSucursal ? "<th>Sucursal</th>" : ""}
-      <th class="num">Adeuda${info("Horas que debe devolver hoy. Los días pedidos se pasan a horas con la jornada del empleado (8 si no tiene jornada cargada).")}</th>
+      <th class="num">Adeuda${info("Horas que debe devolver hoy. Los días pedidos se pasan a horas con la jornada del empleado (8 si no tiene jornada cargada); los sábados valen 4 horas (medio día).")}</th>
       <th class="num">Deudas pendientes${info("Cantidad de permisos o días pedidos que todavía no se terminaron de devolver.")}</th>
       <th>La más antigua${info("Fecha de la deuda pendiente más vieja.")}</th></tr></thead>
       <tbody>${deben.map(({ e, c }) => `<tr class="clic" data-empleado="${e.id}">
@@ -66,7 +66,7 @@
       <th class="num">Era de${info("Horas que se pidieron en total. Si es más que lo que adeuda, una parte ya se devolvió.")}</th><th>Observación</th></tr></thead>
       <tbody>${todas.map(({ e, novedad: n, original, pendiente }) => {
         const t = app().tipo(n.tipo);
-        const dias = t.unidad === "dias" ? `<small>${fmtNum(n.cantidad)} ${Number(n.cantidad) === 1 ? "día" : "días"} × ${fmtNum(Number(e.jornada_horas) || R.calc.JORNADA_POR_DEFECTO, 1)} h</small>` : "";
+        const dias = t.unidad === "dias" ? `<small>${fmtNum(n.cantidad)} ${Number(n.cantidad) === 1 ? "día" : "días"} = ${esc(fmtH(R.calc.horasDeDias(n, e)))} (jornada ${fmtNum(Number(e.jornada_horas) || R.calc.JORNADA_POR_DEFECTO, 1)} h, sábado ${R.calc.JORNADA_SABADO} h)</small>` : "";
         const parcial = pendiente < original - 0.005;
         return `<tr class="clic" data-novedad="${n.id}">
           <td>${fmtFecha(n.fecha_desde)}</td>

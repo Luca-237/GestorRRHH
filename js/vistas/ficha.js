@@ -49,6 +49,8 @@
     const saldoTxt = x => x.saldo == null ? "falta la fecha de ingreso" : `quedan ${fmtNum(x.saldo, 1)} de ${fmtNum(x.corresponden + x.ajuste, 1)} días`;
     const periodo = a => `del período ${a} (del 1/10/${a} al 30/9/${a + 1})`;
     const ch = R.calc.cuentaHoras(e, novedades, tipos), fmtH = R.calc.fmtHoras;
+    // Horas devueltas de más en la cuenta de horas: también son horas a favor, se ven en la billetera
+    const deMas = ch.saldo < -0.005 ? -ch.saldo : 0;
     const saldoHoras = Math.abs(ch.saldo) < 0.005 ? "0 h" : ch.saldo > 0 ? fmtH(ch.saldo) : `${fmtH(ch.saldo)} a favor`;
     const filasHoras = [...ch.movimientos].reverse().map(m => `
       <tr class="clic" data-novedad="${m.novedad.id}">
@@ -107,7 +109,7 @@
       ${e.notas ? `<p class="hint" style="white-space:pre-line">${esc(e.notas)}</p>` : ""}
       <div class="kpis" style="margin-top:8px">
         <div class="kpi destacado"><div class="etiqueta">Saldo vacaciones ${anioVac}${info(`Días de vacaciones que le quedan ${periodo(anioVac)}. Se calcula así: días que corresponden por antigüedad, más o menos los ajustes, menos los días ya tomados.`)}</div><div class="valor">${s.saldo == null ? "—" : fmtNum(s.saldo, 1)}<small>días</small></div><div class="detalle">${s.saldo == null ? "falta la fecha de ingreso" : `corresponden ${s.corresponden}${s.ajuste ? ` ${s.ajuste > 0 ? "+" : "−"} ${fmtNum(Math.abs(s.ajuste), 1)} de ajuste` : ""} · tomados ${fmtNum(s.tomados, 1)}${s.programados ? ` (${fmtNum(s.programados, 1)} programados)` : ""}`}</div></div>
-        <div class="kpi"><div class="etiqueta">Billetera de horas${info("Horas a favor del empleado, en dos saldos: al 50% y al 100%. Se usan desde Cuenta de horas para cobrarlas, tiempo libre, cubrir horas que debe u otro uso.")}</div><div class="valor" style="font-size:26px">${esc(R.calc.fmtHoras(banco.total))}</div><div class="detalle">al 50%: ${esc(R.calc.fmtHoras(banco.h50))} · al 100%: ${esc(R.calc.fmtHoras(banco.h100))}</div></div>
+        <div class="kpi"><div class="etiqueta">Billetera de horas${info("Horas a favor del empleado, en dos saldos: al 50% y al 100%. Se usan desde Cuenta de horas para cobrarlas, tiempo libre, cubrir horas que debe u otro uso.")}</div><div class="valor" style="font-size:26px">${esc(R.calc.fmtHoras(banco.total + deMas))}</div><div class="detalle">al 50%: ${esc(R.calc.fmtHoras(banco.h50))} · al 100%: ${esc(R.calc.fmtHoras(banco.h100))}${deMas > 0 ? ` · devueltas de más: ${esc(R.calc.fmtHoras(deMas))}` : ""}</div></div>
         <div class="kpi"><div class="etiqueta">Cuenta de horas${info("Horas que debe devolver hoy por permisos o días pedidos, descontando lo que ya devolvió. Si dice \"a favor\", devolvió de más.")}</div><div class="valor" style="font-size:26px">${esc(saldoHoras)}</div><div class="detalle">${ch.movimientos.length ? (ch.saldo > 0.005 ? `adeuda ${esc(fmtH(ch.saldo))} en ${ch.pendientes.length} ${ch.pendientes.length === 1 ? "deuda pendiente" : "deudas pendientes"}` : ch.saldo < -0.005 ? "devolvió de más" : "no adeuda nada") : "sin movimientos"}</div></div>
       </div>
       <div class="filtros" style="justify-content:flex-end">
@@ -123,7 +125,7 @@
         <tbody>${filasHoras || `<tr><td colspan="5" class="vacio">Sin movimientos en la cuenta de horas.</td></tr>`}</tbody></table></div>
       <h2 style="margin-top:20px">Billetera de horas${info("Resumen de la billetera, del más nuevo al más viejo: cada carga suma y cada uso resta. \"Saldo\" es lo que quedaba después del movimiento (suma las horas al 50% y al 100%). Las horas se usan desde Cuenta de horas.")}</h2>
       <div class="tabla-wrap"><table class="tabla grilla"><thead><tr><th>Fecha</th><th>Movimiento</th><th class="num">Horas</th><th class="num">Saldo</th><th>Detalle</th></tr></thead>
-        <tbody>${filasBanco || `<tr><td colspan="5" class="vacio">Sin movimientos en la billetera de horas.</td></tr>`}</tbody></table></div>`;
+        <tbody>${deMas > 0 ? `<tr><td>—</td><td>Devueltas de más</td><td class="num a-favor">+${esc(fmtH(deMas))}</td><td class="num"><strong>${esc(fmtH(banco.total + deMas))}</strong></td><td>Horas a favor de la cuenta de horas: devolvió más de lo que debía<small>el saldo de esta fila es el total de la billetera</small></td></tr>` : ""}${filasBanco || (deMas > 0 ? "" : `<tr><td colspan="5" class="vacio">Sin movimientos en la billetera de horas.</td></tr>`)}</tbody></table></div>`;
   }
 
   function iniciar() {

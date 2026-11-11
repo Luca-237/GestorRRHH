@@ -93,12 +93,31 @@
 
   // ---------- Cuenta corriente de horas ----------
   const JORNADA_POR_DEFECTO = 8;
-  // Horas que representa una novedad: horas tal cual, minutos /60, días × jornada del empleado
+  // Los sábados se trabaja medio día: cada sábado vale 4 horas, sin importar la jornada del empleado
+  const JORNADA_SABADO = 4;
+  const esSabadoISO = iso => new Date(iso + "T00:00:00Z").getUTCDay() === 6;
+  // Horas que representan los días de una novedad: días comunes × jornada del empleado y sábados × 4 h.
+  // Si la cantidad coincide con los días corridos del rango, se cuentan los sábados del rango; si no
+  // (por ejemplo medio día), un solo día sábado vale 4 h por día y lo demás, la jornada.
+  function horasDeDias(n, empleado) {
+    const c = Number(n.cantidad) || 0;
+    const jornada = Number(empleado && empleado.jornada_horas) || JORNADA_POR_DEFECTO;
+    const desde = n.fecha_desde, hasta = n.fecha_hasta || n.fecha_desde;
+    if (!desde) return c * jornada;
+    const corridos = diasEntre(desde, hasta);
+    if (hasta >= desde && corridos === c) {
+      let sabados = 0;
+      for (let i = 0; i < corridos; i++) if (esSabadoISO(R.util.sumarDias(desde, i))) sabados++;
+      return (c - sabados) * jornada + sabados * JORNADA_SABADO;
+    }
+    return desde === hasta && esSabadoISO(desde) ? c * JORNADA_SABADO : c * jornada;
+  }
+  // Horas que representa una novedad: horas tal cual, minutos /60, días × jornada del empleado (sábado = 4 h)
   function horasDeNovedad(n, tipo, empleado) {
     const c = Number(n.cantidad) || 0;
     if (tipo.unidad === "horas") return enHoras(c);
     if (tipo.unidad === "minutos") return c / 60;
-    return c * (Number(empleado && empleado.jornada_horas) || JORNADA_POR_DEFECTO);
+    return horasDeDias(n, empleado);
   }
 
   // Saldo de horas de un empleado: positivo = debe horas; negativo = tiene horas a favor
@@ -300,7 +319,7 @@
   }
 
   R.calc = { vacacionesCorresponden, antiguedad, resumirNovedades, saldoVacaciones, anioVacacionesDe, ausentesEn,
-    horasDeNovedad, cuentaHoras, fmtHoras, JORNADA_POR_DEFECTO,
+    horasDeNovedad, horasDeDias, cuentaHoras, fmtHoras, JORNADA_POR_DEFECTO, JORNADA_SABADO,
     fmtPesos, cantidadTexto, minutosTarde, recargoSugerido, HORA_ENTRADA_POR_DEFECTO,
     enHoras, sumarHoras, horaEntrada, horasEntre, revisarHorasExtra, periodoBloqueado,
     leerSaldosCuentaCorriente, emparejarEmpleado, bancoHoras, repartirBanco, esMovimientoInterno };
