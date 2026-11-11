@@ -2,7 +2,8 @@
 //  Vista: Calendario. Mes completo, como Google Calendar: cada ausencia y
 //  cada evento (inventario, capacitación, cierre…) es un rectángulo redondeado
 //  del color de su tipo, que se estira por los días que dura. Clic en un día:
-//  nuevo evento. En el celular se muestra como lista día por día.
+//  nuevo evento; clic en una pieza: su detalle, con el switch "Mostrar en el
+//  calendario" (lo oculto se ve con el filtro "Ocultos"). En el celular se muestra como lista día por día.
 //  Un día con dos integrantes del mismo puesto compartido de vacaciones
 //  queda marcado (pasa con datos viejos; la base ya no lo deja cargar).
 // =====================================================================
@@ -13,7 +14,7 @@
   const DIAS_LARGOS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
   const COLORES = ["#e84e1b", "#c63f12", "#b3261e", "#7a4a2a", "#2f6b3a", "#3c7a89", "#1f5f8b", "#6b4a8a", "#1c1410"];
   const MAX_CARRILES = 4;   // rectángulos visibles por semana; el resto queda en "+N más"
-  let mes = null, dias = new Map(), eventos = [], editandoEvento = null;
+  let mes = null, dias = new Map(), eventos = [], editandoEvento = null, novCal = [], novAbierta = null;
 
   // Color del texto sobre un fondo de color: blanco, o casi negro si el fondo es claro
   function textoSobre(hex) {
@@ -44,12 +45,17 @@
     } catch (e) { $("cal-grilla").innerHTML = ""; return toast(e.message, "error", 6000); }
 
     const tipos = R.estado.tipos;
-    const ausencia = new Set(tipos.filter(t => t.es_ausencia).map(t => t.clave));
+    // En el calendario van las ausencias y los tipos marcados "En calendario" (ej. Trabajó un feriado)
+    const ausencia = new Set(tipos.filter(t => t.es_ausencia || t.en_calendario).map(t => t.clave));
     const vacacion = new Set(tipos.filter(t => t.descuenta_vacaciones).map(t => t.clave));
-    const verAus = $("cal-ver-ausencias").checked, verEv = $("cal-ver-eventos").checked;
-    const ausencias = novedades.filter(n => ausencia.has(n.tipo) && app().esVisible(n.empleado_id));
+    const verAus = $("cal-ver-ausencias").checked, verEv = $("cal-ver-eventos").checked, verOc = $("cal-ver-ocultos").checked;
+    novCal = novedades;
+    const todasAus = novedades.filter(n => ausencia.has(n.tipo) && app().esVisible(n.empleado_id));
     const f = R.estado.filtroSucursal;
-    const evVisibles = eventos.filter(e => !f || !e.sucursal_id || e.sucursal_id === Number(f));
+    const todosEv = eventos.filter(e => !f || !e.sucursal_id || e.sucursal_id === Number(f));
+    // Lo ocultado con el switch "Mostrar en el calendario" solo se ve con el filtro "Ocultos"
+    const ausencias = todasAus.filter(n => verOc || !n.oculto_calendario), evVisibles = todosEv.filter(e => verOc || !e.oculto_calendario);
+    const cantOcultos = (verAus ? todasAus.filter(n => n.oculto_calendario).length : 0) + (verEv ? todosEv.filter(e => e.oculto_calendario).length : 0);
 
     // Días con dos integrantes de un mismo puesto compartido de vacaciones
     const choques = new Map();
@@ -78,18 +84,18 @@
     const rango = (a, b) => a === b ? fmtFecha(a) : fmtCorta(a) + " al " + fmtCorta(b);
     const piezas = [
       ...(verEv ? evVisibles.map(e => ({
-        desde: e.fecha_desde, hasta: e.fecha_hasta, color: e.color, orden: 0, texto: e.titulo, dato: `data-evento="${e.id}"`,
+        desde: e.fecha_desde, hasta: e.fecha_hasta, color: e.color, orden: 0, texto: e.titulo, dato: `data-evento="${e.id}"`, oculto: !!e.oculto_calendario,
         ayuda: `${e.titulo} · ${rango(e.fecha_desde, e.fecha_hasta)}${e.sucursal_id ? " · " + app().sucursalNombre(e.sucursal_id) : " · todas las sucursales"}${e.descripcion ? " — " + e.descripcion : ""}`,
       })) : []),
       ...(verAus ? ausencias.map(n => {
         const emp = app().empleado(n.empleado_id), t = app().tipo(n.tipo), dura = n.fecha_hasta !== n.fecha_desde;
         const quien = emp ? `${emp.apellido}${emp.nombre ? " " + emp.nombre[0] + "." : ""}` : "?";
-        return { desde: n.fecha_desde, hasta: n.fecha_hasta, color: t.color, orden: 1, texto: dura ? `${quien} · ${t.nombre}` : t.unidad !== "dias" ? `${quien} · ${t.nombre} ${R.calc.cantidadTexto(n, t)}` : quien, dato: `data-empleado="${n.empleado_id}"`,
-          ayuda: `${nombreEmpleado(emp)} · ${t.nombre} · ${rango(n.fecha_desde, n.fecha_hasta)}${emp ? " · " + app().sucursalNombre(emp.sucursal_id) : ""}` };
+        return { desde: n.fecha_desde, hasta: n.fecha_hasta, color: t.color, orden: 1, texto: dura || t.unidad === "registro" ? `${quien} · ${t.nombre}` : t.unidad !== "dias" ? `${quien} · ${t.nombre} ${R.calc.cantidadTexto(n, t)}` : quien, dato: `data-novedad="${n.id}"`, oculto: !!n.oculto_calendario,
+          ayuda: `${nombreEmpleado(emp)} · ${t.nombre} · ${rango(n.fecha_desde, n.fecha_hasta)}${emp ? " · " + app().sucursalNombre(emp.sucursal_id) : ""}${n.observacion ? " — " + n.observacion : ""}${n.oculto_calendario ? " (oculta)" : ""}` };
       }) : []),
     ].sort((a, b) => a.desde.localeCompare(b.desde) || b.hasta.localeCompare(a.hasta) || a.orden - b.orden || a.texto.localeCompare(b.texto));
 
-    const boton = (p, clases = "", estilo = "") => `<button type="button" class="cal-barra ${clases}" style="--c:${esc(p.color)}; --t:${textoSobre(p.color)}${estilo}" ${p.dato} data-info="${esc(p.ayuda)}">${esc(p.texto)}</button>`;
+    const boton = (p, clases = "", estilo = "") => `<button type="button" class="cal-barra ${p.oculto ? "oculta " : ""}${clases}" style="--c:${esc(p.color)}; --t:${textoSobre(p.color)}${estilo}" ${p.dato} data-info="${esc(p.ayuda)}">${esc(p.texto)}</button>`;
 
     // Una semana: los 7 días de fondo y, encima, las piezas acomodadas en carriles (como Google Calendar)
     const semana = inicio => {
@@ -143,7 +149,8 @@
     $("cal-leyenda").innerHTML = usados.map(t => `<span class="chip" style="--c:${esc(t.color)}">${esc(t.nombre)}</span>`).join("") +
       (evVisibles.length ? `<span class="chip chip-evento">Eventos</span>` : "") +
       ([...dias.values()].some(x => x.bloqueo) ? `<span class="chip chip-bloqueo">Sin vacaciones</span>` : "") +
-      (choques.size ? `<span class="chip chip-choque">Puesto compartido con dos de vacaciones</span>` : "");
+      (choques.size ? `<span class="chip chip-choque">Puesto compartido con dos de vacaciones</span>` : "") +
+      (cantOcultos && !verOc ? `<span class="hint" style="margin:0">${cantOcultos} ${cantOcultos === 1 ? "oculto" : "ocultos"} (tildá "Ocultos" para verlos)</span>` : "");
   }
 
   // ---------- Detalle de un día ----------
@@ -154,7 +161,7 @@
     const lista = [
       ...x.eventos.map(e => `<li class="clic" data-evento="${e.id}"><span><span class="chip" style="--c:${esc(e.color)}">${esc(e.titulo)}</span>${e.descripcion ? `<br><small>${esc(e.descripcion)}</small>` : ""}</span><small>${e.sucursal_id ? esc(app().sucursalNombre(e.sucursal_id)) : "Todas"}</small></li>`),
       ...x.ausencias.map(n => { const emp = app().empleado(n.empleado_id), t = app().tipo(n.tipo);
-        return `<li class="clic" data-empleado="${n.empleado_id}"><span>${esc(nombreEmpleado(emp))}<br><small>${esc(app().sucursalNombre(emp && emp.sucursal_id))} · ${fmtCorta(n.fecha_desde)}${n.fecha_hasta !== n.fecha_desde ? " al " + fmtCorta(n.fecha_hasta) : ""}</small></span>${app().chipTipo(n.tipo)}</li>`; }),
+        return `<li class="clic" data-novedad="${n.id}"><span>${esc(nombreEmpleado(emp))}<br><small>${esc(app().sucursalNombre(emp && emp.sucursal_id))} · ${fmtCorta(n.fecha_desde)}${n.fecha_hasta !== n.fecha_desde ? " al " + fmtCorta(n.fecha_hasta) : ""}</small></span>${app().chipTipo(n.tipo)}</li>`; }),
     ];
     $("dia-cuerpo").innerHTML = `${x.feriado ? `<p class="hint">Feriado: ${esc(x.feriado.descripcion)}</p>` : ""}
       <ul class="lista-simple">${lista.join("") || `<li class="vacio">Nada cargado este día.</li>`}</ul>
@@ -186,6 +193,9 @@
     $("evt-sucursal").value = datos.id ? (datos.sucursal_id || "") : esAdmin ? (R.estado.filtroSucursal || "") : String(miSuc || "");
     $("evt-sucursal").disabled = !esAdmin;
     $("evt-eliminar").hidden = !editandoEvento;
+    // Switch para ocultar el evento del calendario (solo en un evento ya guardado)
+    $("evt-mostrar-wrap").hidden = !editandoEvento;
+    $("evt-mostrar").checked = !(editandoEvento && editandoEvento.oculto_calendario);
     // Debajo del evento: marcar ese día como feriado (solo admin, y solo al crear un evento nuevo)
     $("evt-feriado-bloque").hidden = !esAdmin || !!editandoEvento;
     const fer = R.estado.feriados.find(x => x.fecha === $("evt-desde").value);
@@ -228,14 +238,56 @@
   function clic(e) {
     const ev = e.target.closest("[data-evento]");
     if (ev) { const x = eventos.find(y => y.id === Number(ev.dataset.evento)); if (x) abrirEvento(x); return; }
-    const emp = e.target.closest("[data-empleado]");
-    if (emp) { if ($("dlg-dia").open) $("dlg-dia").close(); return R.vistaFicha.abrir(Number(emp.dataset.empleado)); }
+    const nov = e.target.closest("[data-novedad]");
+    if (nov) return abrirNovedad(Number(nov.dataset.novedad));
     const mas = e.target.closest("[data-dia]");
     if (mas) return abrirDia(mas.dataset.dia);
     const nuevo = e.target.closest("[data-nuevo-evento]");
     if (nuevo) return abrirEvento({ fecha_desde: nuevo.dataset.nuevoEvento });
     const dia = e.target.closest(".cal-dia");
     if (dia && puedeCargar()) abrirEvento({ fecha_desde: dia.dataset.fecha });
+  }
+
+  // ---------- Detalle de una novedad (ausencia o tipo marcado "En calendario") ----------
+  function abrirNovedad(id) {
+    const n = novCal.find(x => x.id === id);
+    if (!n) return;
+    novAbierta = n;
+    const emp = app().empleado(n.empleado_id), t = app().tipo(n.tipo);
+    $("caln-titulo").textContent = nombreEmpleado(emp);
+    const fila = (et, v) => v ? `<div><dt>${esc(et)}</dt><dd>${v}</dd></div>` : "";
+    $("caln-cuerpo").innerHTML = `<dl class="ficha-datos">
+      ${fila("Tipo", app().chipTipo(n.tipo))}
+      ${fila("Fecha", esc(n.fecha_hasta && n.fecha_hasta !== n.fecha_desde ? fmtFecha(n.fecha_desde) + " al " + fmtFecha(n.fecha_hasta) : fmtFecha(n.fecha_desde)))}
+      ${t.unidad !== "registro" ? fila("Cantidad", esc(R.calc.cantidadTexto(n, t))) : ""}
+      ${fila("Sucursal", esc(app().sucursalNombre(emp && emp.sucursal_id)))}
+      ${fila("Observación", esc(n.observacion))}</dl>`;
+    $("caln-mostrar").checked = !n.oculto_calendario;
+    $("caln-mostrar").disabled = !puedeCargar();
+    if ($("dlg-dia").open) $("dlg-dia").close();
+    $("dlg-cal-novedad").showModal();
+  }
+
+  async function mostrarNovedad() {
+    if (!novAbierta) return;
+    const oculto = !$("caln-mostrar").checked;
+    try {
+      await R.api.novedades.ocultarEnCalendario(novAbierta.id, oculto);
+      novAbierta.oculto_calendario = oculto;
+      toast(oculto ? 'Oculta del calendario. Se ve con el filtro "Ocultos".' : "Se vuelve a mostrar en el calendario.");
+      mostrar();
+    } catch (err) { $("caln-mostrar").checked = !oculto; toast(err.message, "error", 6000); }
+  }
+
+  async function mostrarEvento() {
+    if (!editandoEvento) return;
+    const oculto = !$("evt-mostrar").checked;
+    try {
+      await R.api.eventos.actualizar(editandoEvento.id, { oculto_calendario: oculto });
+      editandoEvento.oculto_calendario = oculto;
+      toast(oculto ? 'Evento oculto del calendario. Se ve con el filtro "Ocultos".' : "El evento se vuelve a mostrar en el calendario.");
+      mostrar();
+    } catch (err) { $("evt-mostrar").checked = !oculto; $("evento-error").textContent = err.message; }
   }
 
   // Marcar el día del evento como feriado / no laborable (sale igual que el resto de feriados en toda la página), o quitarlo si ya lo es
@@ -266,6 +318,11 @@
     $("cal-nuevo-evento").addEventListener("click", () => abrirEvento({ fecha_desde: mes === mesActual() ? hoy() : `${mes}-01` }));
     $("cal-ver-ausencias").addEventListener("change", mostrar);
     $("cal-ver-eventos").addEventListener("change", mostrar);
+    $("cal-ver-ocultos").addEventListener("change", mostrar);
+    $("caln-mostrar").addEventListener("change", mostrarNovedad);
+    $("evt-mostrar").addEventListener("change", mostrarEvento);
+    $("caln-ficha").addEventListener("click", () => { const id = novAbierta && novAbierta.empleado_id; $("dlg-cal-novedad").close(); if (id) R.vistaFicha.abrir(id); });
+    $("caln-editar").addEventListener("click", () => { const id = novAbierta && novAbierta.id; $("dlg-cal-novedad").close(); if (id) R.vistaNovedades.editar(id); });
     $("cal-grilla").addEventListener("click", clic);
     $("dia-cuerpo").addEventListener("click", clic);
     $("evt-feriado").addEventListener("click", alternarFeriado);

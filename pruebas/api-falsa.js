@@ -35,7 +35,7 @@
     ["trabajo_feriado", "Trabajó un feriado", "registro", false, false, "#b8860b"],
   ].map(([clave, nombre, unidad, descuenta_vacaciones, es_ausencia, color, cuenta_horas = 0], i) =>
     ({ clave, nombre, unidad, descuenta_vacaciones, es_ausencia, color, cuenta_horas, orden: i + 1, activo: true, del_sistema: true }));
-  tipos.forEach(t => { t.descuenta_sueldo = ["adelanto", "compra_cuenta_corriente"].includes(t.clave); });
+  tipos.forEach(t => { t.descuenta_sueldo = ["adelanto", "compra_cuenta_corriente"].includes(t.clave); t.en_calendario = t.clave === "trabajo_feriado"; });
   const nombres = [
     ["Prueba", "Ana", 1, "Vendedor B", "2015-03-02"], ["Ejemplo", "Bruno", 1, "Auxiliar B", "2022-07-11"],
     ["Demo", "Carla", 1, "Administrativo B", "2019-11-04"], ["Ficticio", "Diego", 1, "Vendedor B", "2026-08-01"],
@@ -184,6 +184,7 @@
       generadaPor: async id => copia(novedades.find(n => n.generada_por === id) || null),
       horasExtraPendientes: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && !n.liquidado_en && !n.banco && !n.compensado)),
       horasExtraCompensadas: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && n.compensado)),
+      ocultarEnCalendario: async (id, oculto) => { const n = novedades.find(x => x.id === id); if (n) n.oculto_calendario = !!oculto; },
       aBilletera: async ids => { novedades.filter(n => ids.includes(n.id) && n.tipo === "horas_extra").forEach(n => { n.banco = true; n.liquidado_en = null; n.compensado = false; }); },
       compensar: async (ids, valor) => { novedades.filter(n => ids.includes(n.id)).forEach(n => { n.compensado = !!valor; if (valor) n.liquidado_en = null; }); },
       bancoHoras: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && n.banco)),

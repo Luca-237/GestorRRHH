@@ -9,9 +9,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23e84e1b'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/app.css?v=20261111.4">
+<link rel="stylesheet" href="css/app.css?v=20261111.5">
 <!-- El color de fondo elegido se aplica después de la hoja de estilos (para pisarla) y antes de dibujar, así no parpadea -->
-<script src="js/color.js?v=20261111.4"></script>
+<script src="js/color.js?v=20261111.5"></script>
 <script>try { ColorFondo.aplicar(ColorFondo.leer()); } catch (e) {}</script>
 </head>
 <body>
@@ -208,7 +208,8 @@
         <div class="cal-filtros">
           <label class="check"><input type="checkbox" id="cal-ver-ausencias" checked> Ausencias</label>
           <label class="check"><input type="checkbox" id="cal-ver-eventos" checked> Eventos</label>
-          <span class="hint" style="margin:0">Hacé clic en un día para agregar un evento; en una ausencia, para ver la ficha.</span>
+          <label class="check"><input type="checkbox" id="cal-ver-ocultos"> Ocultos<span class="info" tabindex="0" role="img" aria-label="Muestra, en gris, lo que se ocultó del calendario con el switch &quot;Mostrar en el calendario&quot;." data-info="Muestra, en gris, lo que se ocultó del calendario con el switch &quot;Mostrar en el calendario&quot;."></span></label>
+          <span class="hint" style="margin:0">Hacé clic en un día para agregar un evento; en una ausencia o un evento, para ver su detalle.</span>
           <span class="info" tabindex="0" role="img" aria-label="Muestra las ausencias cargadas (vacaciones, francos, licencias, faltas, días a devolver) y los eventos. Las ausencias toman el color de su tipo de novedad. Un día con borde rojo tiene a dos personas de un mismo puesto compartido de vacaciones a la vez." data-info="Muestra las ausencias cargadas (vacaciones, francos, licencias, faltas, días a devolver) y los eventos. Las ausencias toman el color de su tipo de novedad. Un día con borde rojo tiene a dos personas de un mismo puesto compartido de vacaciones a la vez."></span>
         </div>
         <div class="cal-leyenda" id="cal-leyenda"></div>
@@ -647,6 +648,7 @@
       <div class="colores" id="evt-colores" role="radiogroup" aria-label="Color del evento"></div>
       <label for="evt-sucursal">Sucursal<span class="info" tabindex="0" role="img" aria-label="Para quién es el evento. &quot;Todas&quot; lo ven todos (solo lo puede cargar un admin). Un encargado carga eventos de su sucursal." data-info="Para quién es el evento. &quot;Todas&quot; lo ven todos (solo lo puede cargar un admin). Un encargado carga eventos de su sucursal."></span></label><select id="evt-sucursal"></select>
       <label for="evt-descripcion">Descripción</label><textarea id="evt-descripcion" placeholder="Opcional"></textarea>
+      <label class="switch" id="evt-mostrar-wrap" hidden><input type="checkbox" id="evt-mostrar" role="switch"><span class="switch-pista" aria-hidden="true"></span><span>Mostrar en el calendario</span></label>
       <div class="mensaje-error" id="evento-error" role="alert"></div>
       <div class="dlg-pie">
         <button type="button" class="link peligro" id="evt-eliminar" hidden style="margin-right:auto">Eliminar</button>
@@ -659,6 +661,25 @@
       </div>
     </div>
   </form>
+</dialog>
+
+<!-- ============ Diálogo: detalle de una novedad del calendario ============ -->
+<dialog class="dlg" id="dlg-cal-novedad">
+  <div class="dlg-head">
+    <h3 id="caln-titulo">Detalle</h3>
+    <button type="button" class="btn-cerrar" data-cerrar aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <div id="caln-cuerpo"></div>
+    <label class="switch"><input type="checkbox" id="caln-mostrar" role="switch"><span class="switch-pista" aria-hidden="true"></span><span>Mostrar en el calendario</span></label>
+    <p class="hint" style="margin-top:6px">Ocultarla solo la saca del calendario: la novedad sigue cargada y se vuelve a ver con el filtro "Ocultos".</p>
+    <div class="dlg-pie">
+      <button type="button" class="btn-sec" id="caln-ficha">Ver ficha del empleado</button>
+      <button type="button" class="btn-sec primario" id="caln-editar">Editar novedad</button>
+    </div>
+  </div>
 </dialog>
 
 <!-- ============ Diálogo: todo lo de un día ============ -->
@@ -689,27 +710,27 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <!-- Configuración. Los ?v= obligan al navegador a bajar la versión nueva:
      al cambiar cualquier CSS/JS, subir el número en TODAS las líneas. -->
-<script src="js/config.js?v=20261111.4"></script>
+<script src="js/config.js?v=20261111.5"></script>
 <!-- Lógica (sin pantalla) -->
-<script src="js/utils.js?v=20261111.4"></script>
-<script src="js/calculos.js?v=20261111.4"></script>
-<script src="js/api.js?v=20261111.4"></script>
+<script src="js/utils.js?v=20261111.5"></script>
+<script src="js/calculos.js?v=20261111.5"></script>
+<script src="js/api.js?v=20261111.5"></script>
 <!-- Vistas (pantalla) -->
-<script src="js/vistas/acceso.js?v=20261111.4"></script>
-<script src="js/vistas/ficha.js?v=20261111.4"></script>
-<script src="js/vistas/tablero.js?v=20261111.4"></script>
-<script src="js/vistas/empleados.js?v=20261111.4"></script>
-<script src="js/vistas/novedades.js?v=20261111.4"></script>
-<script src="js/vistas/vacaciones.js?v=20261111.4"></script>
-<script src="js/vistas/banco.js?v=20261111.4"></script>
-<script src="js/vistas/horas.js?v=20261111.4"></script>
-<script src="js/vistas/horas-extra.js?v=20261111.4"></script>
-<script src="js/vistas/importar-cc.js?v=20261111.4"></script>
-<script src="js/vistas/descuentos.js?v=20261111.4"></script>
-<script src="js/vistas/calendario.js?v=20261111.4"></script>
-<script src="js/vistas/compartidos.js?v=20261111.4"></script>
-<script src="js/vistas/configuracion.js?v=20261111.4"></script>
+<script src="js/vistas/acceso.js?v=20261111.5"></script>
+<script src="js/vistas/ficha.js?v=20261111.5"></script>
+<script src="js/vistas/tablero.js?v=20261111.5"></script>
+<script src="js/vistas/empleados.js?v=20261111.5"></script>
+<script src="js/vistas/novedades.js?v=20261111.5"></script>
+<script src="js/vistas/vacaciones.js?v=20261111.5"></script>
+<script src="js/vistas/banco.js?v=20261111.5"></script>
+<script src="js/vistas/horas.js?v=20261111.5"></script>
+<script src="js/vistas/horas-extra.js?v=20261111.5"></script>
+<script src="js/vistas/importar-cc.js?v=20261111.5"></script>
+<script src="js/vistas/descuentos.js?v=20261111.5"></script>
+<script src="js/vistas/calendario.js?v=20261111.5"></script>
+<script src="js/vistas/compartidos.js?v=20261111.5"></script>
+<script src="js/vistas/configuracion.js?v=20261111.5"></script>
 <!-- Arranque -->
-<script src="js/main.js?v=20261111.4"></script>
+<script src="js/main.js?v=20261111.5"></script>
 </body>
 </html>

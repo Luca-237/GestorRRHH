@@ -8,7 +8,7 @@
     "fecha_ingreso", "fecha_egreso", "activo", "motivo_baja", "telefono", "email", "fecha_nacimiento", "direccion", "obra_social", "banco",
     "contacto_emergencia_nombre", "contacto_emergencia_tel", "notas"];
   const CAMPOS_NOVEDAD = ["empleado_id", "tipo", "fecha_desde", "fecha_hasta", "cantidad", "recargo",
-    "anio_vacaciones", "con_certificado", "observacion", "hora", "liquidado_en", "banco", "banco_usado", "compensado"];
+    "anio_vacaciones", "con_certificado", "observacion", "hora", "liquidado_en", "banco", "banco_usado", "compensado", "oculto_calendario"];
   // Solo se envía (y solo cuando es true) al cargar vacaciones como excepción en un período sin vacaciones
   const CAMPOS_NOVEDAD_ESCRITURA = [...CAMPOS_NOVEDAD, "excepcion_bloqueo"];
   let sb = null;
@@ -141,6 +141,8 @@
     horasExtraPendientes: () => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").eq("banco", false).eq("compensado", false).is("liquidado_en", null).order("fecha_desde")),
     // Horas extra compensadas (no se liquidan) y cómo marcarlas / desmarcarlas
     horasExtraCompensadas: () => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").eq("compensado", true).order("fecha_desde", { ascending: false })),
+    // Ocultar / volver a mostrar una novedad en el calendario (no cambia nada más)
+    async ocultarEnCalendario(id, oculto) { chequear(await sb.from("novedades").update({ oculto_calendario: !!oculto }).eq("id", id)); },
     // Pasa horas extra pendientes a la billetera de horas (sin liquidarlas)
     async aBilletera(ids) { chequear(await sb.from("novedades").update({ banco: true }).in("id", ids)); },
     async compensar(ids, valor) { chequear(await sb.from("novedades").update({ compensado: !!valor }).in("id", ids)); },
