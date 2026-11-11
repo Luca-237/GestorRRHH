@@ -32,6 +32,7 @@
     ["adelanto", "Adelanto de sueldo (plata adelantada)", "pesos", false, false, "#1f5f8b"], ["compra_cuenta_corriente", "Compra en cuenta corriente (a descontar)", "pesos", false, false, "#8a5a1f"], ["viatico", "Viático", "pesos", false, false, "#3c7a89"],
     ["alta", "Alta laboral", "registro", false, false, "#2f6b3a"], ["baja", "Baja laboral", "registro", false, false, "#7a1f1f"],
     ["cambio_obra_social", "Cambio de obra social", "registro", false, false, "#8a8a8a"],
+    ["trabajo_feriado", "Trabajó un feriado", "registro", false, false, "#b8860b"],
   ].map(([clave, nombre, unidad, descuenta_vacaciones, es_ausencia, color, cuenta_horas = 0], i) =>
     ({ clave, nombre, unidad, descuenta_vacaciones, es_ausencia, color, cuenta_horas, orden: i + 1, activo: true, del_sistema: true }));
   tipos.forEach(t => { t.descuenta_sueldo = ["adelanto", "compra_cuenta_corriente"].includes(t.clave); });
@@ -183,6 +184,7 @@
       generadaPor: async id => copia(novedades.find(n => n.generada_por === id) || null),
       horasExtraPendientes: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && !n.liquidado_en && !n.banco && !n.compensado)),
       horasExtraCompensadas: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && n.compensado)),
+      aBilletera: async ids => { novedades.filter(n => ids.includes(n.id) && n.tipo === "horas_extra").forEach(n => { n.banco = true; n.liquidado_en = null; n.compensado = false; }); },
       compensar: async (ids, valor) => { novedades.filter(n => ids.includes(n.id)).forEach(n => { n.compensado = !!valor; if (valor) n.liquidado_en = null; }); },
       bancoHoras: () => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && n.banco)),
       horasExtraLiquidadas: mes => espera(novedades.filter(n => ve(n.empleado_id) && n.tipo === "horas_extra" && n.liquidado_en === mes)),

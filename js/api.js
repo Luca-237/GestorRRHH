@@ -141,6 +141,8 @@
     horasExtraPendientes: () => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").eq("banco", false).eq("compensado", false).is("liquidado_en", null).order("fecha_desde")),
     // Horas extra compensadas (no se liquidan) y cómo marcarlas / desmarcarlas
     horasExtraCompensadas: () => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").eq("compensado", true).order("fecha_desde", { ascending: false })),
+    // Pasa horas extra pendientes a la billetera de horas (sin liquidarlas)
+    async aBilletera(ids) { chequear(await sb.from("novedades").update({ banco: true }).in("id", ids)); },
     async compensar(ids, valor) { chequear(await sb.from("novedades").update({ compensado: !!valor }).in("id", ids)); },
     // Depósitos del banco de horas (horas extra guardadas como horas a favor)
     bancoHoras: () => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").eq("banco", true).order("fecha_desde")),

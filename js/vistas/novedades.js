@@ -55,7 +55,7 @@
   // Tipos agrupados para encontrarlos rápido (los que agrega un admin van en "Otros")
   const GRUPOS_TIPOS = [
     ["Ausencias", ["vacaciones", "franco", "licencia_medica", "licencia_accidente", "licencia_especial", "falta", "dia_a_devolver"]],
-    ["Horario", ["llegada_tarde", "horas_extra", "permiso_horas", "devolucion_horas"]],
+    ["Horario", ["llegada_tarde", "horas_extra", "trabajo_feriado", "permiso_horas", "devolucion_horas"]],
     ["Montos", ["adelanto", "compra_cuenta_corriente", "viatico"]],
     ["Registros", ["cambio_obra_social", "alta", "baja"]],
   ];

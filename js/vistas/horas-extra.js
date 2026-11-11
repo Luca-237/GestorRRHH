@@ -92,6 +92,7 @@
     const ids = seleccionadas(), l = pendientes.filter(n => ids.includes(n.id));
     $("he-liq-btn").disabled = !ids.length;
     $("he-comp-btn").disabled = !ids.length;
+    $("he-banco-btn").disabled = !ids.length;
     $("he-liq-resumen").textContent = ids.length ? `${ids.length} seleccionadas · ${horas(suma(l))} (50%: ${horas(suma(l, 50))} · 100%: ${horas(suma(l, 100))})` : "Tildá las horas que entran en ese sueldo.";
   }
 
@@ -121,7 +122,22 @@
     } catch (e) { toast(e.message, "error", 6000); }
   }
 
+  // Agregar a la cuenta: las horas pasan a la billetera del empleado (50% / 100% según su recargo) y salen de pendientes
+  async function aBilletera() {
+    const ids = seleccionadas();
+    if (!ids.length) return;
+    const l = pendientes.filter(n => ids.includes(n.id));
+    if (!await R.util.confirmar(`¿Agregar ${ids.length} ${ids.length === 1 ? "registro" : "registros"} (${horas(suma(l))}) a la billetera de horas de ${new Set(l.map(n => n.empleado_id)).size === 1 ? "el empleado" : "los empleados"}? Salen de Pendientes de liquidar y quedan como horas a favor (50%: ${horas(suma(l, 50))} · 100%: ${horas(suma(l, 100))}), para usarlas sin liquidarlas.`, { titulo: "Agregar a la billetera", aceptar: "Agregar" })) return;
+    $("he-banco-btn").disabled = true;
+    try {
+      await R.api.novedades.aBilletera(ids);
+      toast("Agregadas a la billetera de horas.");
+      mostrar();
+    } catch (e) { toast(e.message, "error", 6000); $("he-banco-btn").disabled = false; }
+  }
+
   function iniciar() {
+    $("he-banco-btn").addEventListener("click", aBilletera);
     $("he-comp-btn").addEventListener("click", () => compensar(seleccionadas(), true));
     $("he-mes").addEventListener("change", mostrar);
     $("he-nueva").addEventListener("click", () => R.vistaNovedades.abrirFormulario({ tipo: "horas_extra" }));
