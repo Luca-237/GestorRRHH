@@ -124,8 +124,15 @@
 
   // Agregar a la cuenta: las horas pasan a la billetera del empleado (50% / 100% según su recargo) y salen de pendientes
   async function aBilletera() {
-    const ids = seleccionadas();
+    let ids = seleccionadas();
     if (!ids.length) return;
+    // Las que ya salieron de la billetera (Cobrarlas en el sueldo) no vuelven a entrar: para devolverlas se borran
+    const deBilletera = pendientes.filter(n => ids.includes(n.id) && n.generada_por);
+    if (deBilletera.length) {
+      if (deBilletera.length === ids.length) return toast("Esas horas ya salieron de la billetera. Para devolverlas, abrilas con Editar y eliminalas: vuelven solas a la billetera.", "error", 7000);
+      ids = ids.filter(id => !deBilletera.some(n => n.id === id));
+      toast(`${deBilletera.length} ${deBilletera.length === 1 ? "fila salió" : "filas salieron"} de la billetera y no se agregan (para devolverlas, eliminalas).`, "error", 6000);
+    }
     const l = pendientes.filter(n => ids.includes(n.id));
     if (!await R.util.confirmar(`¿Agregar ${ids.length} ${ids.length === 1 ? "registro" : "registros"} (${horas(suma(l))}) a la billetera de horas de ${new Set(l.map(n => n.empleado_id)).size === 1 ? "el empleado" : "los empleados"}? Salen de Pendientes de liquidar y quedan como horas a favor (50%: ${horas(suma(l, 50))} · 100%: ${horas(suma(l, 100))}), para usarlas sin liquidarlas.`, { titulo: "Agregar a la billetera", aceptar: "Agregar" })) return;
     $("he-banco-btn").disabled = true;

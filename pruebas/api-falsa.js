@@ -193,7 +193,60 @@
       descuentosDelMes: (claves, mes) => espera(novedades.filter(n => ve(n.empleado_id) && claves.includes(n.tipo) && n.liquidado_en === mes)),
       liquidar: async (ids, fecha) => { novedades.filter(n => ids.includes(n.id)).forEach(n => { n.liquidado_en = fecha; }); },
       actualizar: async (id, d) => { const n = novedades.find(x => x.id === id); Object.assign(n, d); completar(n); return copia(n); },
+      // Billetera: misma lógica que usar_billetera de la base (simplificada)
+      usarBilletera: async ({ empleado_id, recargo, horas, destino, fecha, observacion = "" }) => {
+        if (comoEncargado) throw new Error("Solo RRHH (un usuario admin) puede usar horas de la billetera.");
+        const rec = Number(recargo) === 100 ? 100 : 50, r2 = x => Math.round(x * 100) / 100;
+        const deps = novedades.filter(n => n.empleado_id === empleado_id && n.tipo === "horas_extra" && n.banco && (Number(n.recargo) === 100 ? 100 : 50) === rec)
+          .sort((a, b) => a.fecha_desde.localeCompare(b.fecha_desde) || a.id - b.id);
+        const disp = deps.reduce((a, n) => a + n.cantidad - (n.banco_usado || 0), 0);
+        if (disp + 0.004 < horas) throw new Error(`Solo hay ${disp} h al ${rec}% en la billetera.`);
+        const textos = { cobrar: "Cobro en el sueldo", libre: "Tiempo libre", deuda: "Para cubrir horas que debe", otro: "Otro uso" };
+        const uso = completar({ id: nuevoId(), empleado_id, tipo: "banco_uso", fecha_desde: fecha, cantidad: horas, creado_en: new Date().toISOString(),
+          observacion: `${textos[destino]} (horas al ${rec}%)${observacion ? ": " + observacion : ""}`, billetera_tomas: [] });
+        novedades.push(uso);
+        let falta = horas;
+        for (const d of deps) {
+          if (falta <= 0.004) break;
+          const toma = r2(Math.min(d.cantidad - (d.banco_usado || 0), falta));
+          if (toma <= 0.004) continue;
+          d.banco_usado = r2((d.banco_usado || 0) + toma);
+          let he = null;
+          if (destino === "cobrar") {
+            he = completar({ id: nuevoId(), empleado_id, tipo: "horas_extra", fecha_desde: d.fecha_desde, cantidad: toma, recargo: rec, banco: false,
+              observacion: "Pasadas desde la billetera de horas", generada_por: uso.id, creado_en: new Date().toISOString() });
+            novedades.push(he);
+          }
+          uso.billetera_tomas.push({ deposito: d.id, horas: toma, hora_extra: he && he.id });
+          falta -= toma;
+        }
+        if (destino === "deuda") novedades.push(completar({ id: nuevoId(), empleado_id, tipo: "devolucion_horas", fecha_desde: fecha, cantidad: horas,
+          observacion: "Cubierta con horas de la billetera", generada_por: uso.id, creado_en: new Date().toISOString() }));
+        return uso.id;
+      },
       eliminar: async id => {
+        const n0 = novedades.find(n => n.id === id);
+        // Igual que la base: cargas usadas no se borran; usos devuelven las horas; lo que generó un uso lo deshace
+        if (n0 && n0.tipo === "horas_extra" && n0.banco && n0.banco_usado > 0.004) throw new Error(`De esta carga ya se usaron ${n0.banco_usado} h. Borrá primero los usos que salieron de ella (ficha del empleado, Billetera de horas): las horas vuelven y después se puede borrar.`);
+        const devolver = u => (u.billetera_tomas || []).forEach(t => { const d = novedades.find(x => x.id === t.deposito); if (d) d.banco_usado = Math.max(0, Math.round((d.banco_usado - t.horas) * 100) / 100); });
+        if (n0 && n0.tipo === "banco_uso") {
+          if (comoEncargado) throw new Error("Solo RRHH (un usuario admin) puede borrar usos de la billetera.");
+          const liq = novedades.find(x => x.generada_por === id && x.tipo === "horas_extra" && x.liquidado_en);
+          if (liq) throw new Error(`Las horas de este uso ya se liquidaron en el sueldo de ${liq.liquidado_en.slice(5, 7)}/${liq.liquidado_en.slice(0, 4)}: no se puede borrar.`);
+          devolver(n0);
+          for (let i = novedades.length - 1; i >= 0; i--) if (novedades[i].generada_por === id) novedades.splice(i, 1);
+        }
+        const padre = n0 && n0.generada_por && novedades.find(x => x.id === n0.generada_por && x.tipo === "banco_uso");
+        if (padre) {
+          if (comoEncargado) throw new Error("Solo RRHH (un usuario admin) puede deshacer un uso de la billetera.");
+          if (n0.tipo === "horas_extra" && n0.liquidado_en) throw new Error("Estas horas ya se liquidaron: no vuelven a la billetera.");
+          if (n0.tipo === "devolucion_horas") { devolver(padre); novedades.splice(novedades.indexOf(padre), 1); }
+          else {
+            const t = padre.billetera_tomas.find(x => x.hora_extra === id);
+            if (t) { devolver({ billetera_tomas: [t] }); padre.billetera_tomas = padre.billetera_tomas.filter(x => x !== t); padre.cantidad = Math.max(0, Math.round((padre.cantidad - t.horas) * 100) / 100); }
+            if (!padre.billetera_tomas.length) novedades.splice(novedades.indexOf(padre), 1);
+          }
+        }
         novedades.splice(novedades.findIndex(n => n.id === id), 1);
         const hija = novedades.findIndex(n => n.generada_por === id);
         if (hija >= 0) novedades.splice(hija, 1);

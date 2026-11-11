@@ -122,7 +122,8 @@
   };
 
   // ---------- Novedades ----------
-  const COLS_NOVEDAD = "id, " + CAMPOS_NOVEDAD.join(", ") + ", creado_en";
+  // generada_por solo se lee (la escribe la base: falta por llegadas tarde, o lo que generó un uso de la billetera)
+  const COLS_NOVEDAD = "id, " + CAMPOS_NOVEDAD.join(", ") + ", generada_por, creado_en";
   const novedades = {
     // Las que tocan el rango [desde, hasta] (una vacación que empieza antes también cuenta)
     entre: (desde, hasta) => todo(() => sb.from("novedades").select(COLS_NOVEDAD)
@@ -141,6 +142,10 @@
     horasExtraPendientes: () => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").eq("banco", false).eq("compensado", false).is("liquidado_en", null).order("fecha_desde")),
     // Horas extra compensadas (no se liquidan) y cómo marcarlas / desmarcarlas
     horasExtraCompensadas: () => todo(() => sb.from("novedades").select(COLS_NOVEDAD).eq("tipo", "horas_extra").eq("compensado", true).order("fecha_desde", { ascending: false })),
+    // Usar horas de la billetera: lo hace la base en una sola transacción (función usar_billetera). Devuelve el id del uso.
+    async usarBilletera({ empleado_id, recargo, horas, destino, fecha, observacion }) {
+      return chequear(await sb.rpc("usar_billetera", { p_empleado: empleado_id, p_recargo: recargo, p_horas: horas, p_destino: destino, p_fecha: fecha || null, p_obs: observacion || "" }));
+    },
     // Ocultar / volver a mostrar una novedad en el calendario (no cambia nada más)
     async ocultarEnCalendario(id, oculto) { chequear(await sb.from("novedades").update({ oculto_calendario: !!oculto }).eq("id", id)); },
     // Pasa horas extra pendientes a la billetera de horas (sin liquidarlas)

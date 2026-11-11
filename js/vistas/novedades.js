@@ -46,7 +46,7 @@
           <td>${esc(nombreEmpleado(e))}<small>${esc(app().sucursalNombre(e && e.sucursal_id))}</small></td>
           <td>${app().chipTipo(n.tipo)}</td>
           <td class="num">${cantidadTexto(n)}${n.banco ? `<small>en el banco${Number(n.banco_usado) ? " (usó " + R.calc.fmtHoras(n.banco_usado) + ")" : ""}</small>` : ""}${n.hora ? `<small>${n.tipo === "llegada_tarde" ? "llegó" : "desde"} ${n.hora.slice(0, 5)}</small>` : ""}</td>
-          <td>${esc(n.observacion)}${n.tipo === "horas_extra" && !n.banco ? `<small>${n.compensado ? "Compensada (no se liquida)" : n.liquidado_en ? "Liquidada en " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Sin liquidar"}</small>` : ""}${app().tipo(n.tipo).descuenta_sueldo ? `<small>${n.liquidado_en ? "Descontado en el sueldo de " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Pendiente de descontar"}</small>` : ""}${n.generada_por ? "<small>Generada sola (llegadas tarde)</small>" : ""}</td>
+          <td>${esc(n.observacion)}${n.tipo === "horas_extra" && !n.banco ? `<small>${n.compensado ? "Compensada (no se liquida)" : n.liquidado_en ? "Liquidada en " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Sin liquidar"}</small>` : ""}${app().tipo(n.tipo).descuenta_sueldo ? `<small>${n.liquidado_en ? "Descontado en el sueldo de " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Pendiente de descontar"}</small>` : ""}${n.generada_por ? `<small>${n.tipo === "falta" ? "Generada sola (llegadas tarde)" : "Salió de la billetera de horas"}</small>` : ""}</td>
         </tr>`;
       }).join("") || `<tr><td colspan="5" class="vacio">No hay novedades en ${mesTexto($("novedades-mes").value)} con este filtro.</td></tr>`}</tbody>`;
   }
@@ -248,8 +248,28 @@
     $("no-eliminar").hidden = !editando;
     $("novedad-error").textContent = "";
     ajustarFormulario();
+    trabarSiEsDeBilletera();
     $("dlg-novedad").showModal();
     (datos.empleado_id ? $("no-tipo") : $("no-empleado")).focus();
+  }
+
+  // ---------- Filas de la billetera: qué se puede cambiar (la base lo controla igual) ----------
+  // Un uso, o lo que generó un uso (hora extra a cobrar o devolución de deuda), solo cambia de fecha u observación;
+  // una carga de la que ya se usaron horas no cambia de empleado, recargo ni sale de la billetera.
+  const esUsoBilletera = n => !!n && n.tipo === "banco_uso";
+  const salioDeBilletera = n => !!n && !!n.generada_por && ["horas_extra", "devolucion_horas"].includes(n.tipo);
+  const cargaUsada = n => !!n && n.tipo === "horas_extra" && n.banco && Number(n.banco_usado) > 0.004;
+  function trabarSiEsDeBilletera() {
+    const n = editando, trabar = esUsoBilletera(n) || salioDeBilletera(n), usada = cargaUsada(n);
+    $("no-empleado").disabled = trabar || usada;
+    $("no-tipo").disabled = trabar || usada;
+    $("no-cantidad").readOnly = trabar;
+    $("no-recargo").disabled = trabar || usada;
+    $("no-banco").disabled = trabar || usada;
+    const aviso = esUsoBilletera(n) ? "Uso de la billetera: solo se cambia la fecha o la observación. Para cambiar las horas, eliminalo (las horas vuelven a la billetera) y usalas de nuevo."
+      : salioDeBilletera(n) ? (n.tipo === "horas_extra" ? "Estas horas salieron de la billetera (Cobrarlas en el sueldo). Si las eliminás, vuelven a la billetera." : "Esta devolución salió de la billetera. Si la eliminás, se deshace el uso y las horas vuelven a la billetera.")
+      : usada ? `De esta carga ya se usaron ${R.calc.fmtHoras(n.banco_usado)}: la cantidad no puede ser menor y no se puede eliminar hasta borrar esos usos.` : "";
+    if (aviso) $("no-tipo-hint").textContent = aviso;
   }
 
   async function editar(id) {
@@ -286,7 +306,8 @@
       observacion: $("no-observacion").value,
     };
     if (!d.empleado_id) return ($("novedad-error").textContent = "Elegí un empleado.");
-    if (editando && editando.banco && !d.banco && Number(editando.banco_usado) > 0) return ($("novedad-error").textContent = "De este depósito ya se usaron horas del banco: no se puede sacar del banco.");
+    if (editando && editando.banco && !d.banco && Number(editando.banco_usado) > 0) return ($("novedad-error").textContent = "De esta carga ya se usaron horas: no se puede sacar de la billetera.");
+    if (cargaUsada(editando) && d.cantidad < Number(editando.banco_usado) - 0.004) return ($("novedad-error").textContent = `De esta carga ya se usaron ${R.calc.fmtHoras(editando.banco_usado)}: la cantidad no puede ser menor.`);
     if (compensa) {
       t = app().tipo("devolucion_horas");
       Object.assign(d, { tipo: t.clave, recargo: null, liquidado_en: null, hora: null,
@@ -342,7 +363,15 @@
   }
 
   async function eliminar() {
-    if (!editando || !await R.util.confirmar("¿Eliminar esta novedad? No se puede deshacer.")) return;
+    if (!editando) return;
+    const n = editando;
+    if (cargaUsada(n)) return ($("novedad-error").textContent = `De esta carga ya se usaron ${R.calc.fmtHoras(n.banco_usado)}. Borrá primero los usos que salieron de ella (ficha del empleado, Billetera de horas): las horas vuelven y después se puede borrar.`);
+    const texto = esUsoBilletera(n)
+      ? `¿Eliminar este uso de la billetera? Las ${R.calc.fmtHoras(n.cantidad)} vuelven a la billetera${/^Cobro/.test(n.observacion || "") ? " y se borran las horas extra pendientes que generó" : /^Para cubrir/.test(n.observacion || "") ? " y se borra la devolución que generó (vuelve a deber esas horas)" : ""}.`
+      : salioDeBilletera(n) && n.tipo === "horas_extra" ? `Estas horas salieron de la billetera. ¿Eliminarlas? Las ${R.calc.fmtHoras(n.cantidad)} vuelven a la billetera.`
+      : salioDeBilletera(n) ? "Esta devolución salió de la billetera. ¿Eliminarla? Se deshace el uso: las horas vuelven a la billetera y vuelve a deber esas horas."
+      : "¿Eliminar esta novedad? No se puede deshacer.";
+    if (!await R.util.confirmar(texto)) return;
     try {
       await R.api.novedades.eliminar(editando.id);
       $("dlg-novedad").close();
@@ -353,6 +382,8 @@
   }
 
   // ---------- Exportación para el estudio contable ----------
+  // Novedades de registro (sin cantidad) que igual llevan columna propia en la planilla
+  const REGISTROS_EN_PLANILLA = ["trabajo_feriado"];
   // Una fila por empleado con los totales del mes (lo que se manda para liquidar sueldos)
   async function exportar() {
     const mes = $("novedades-mes").value || mesActual();
@@ -361,9 +392,14 @@
     const resumen = R.calc.resumirNovedades(lista, desde, hasta, tipos);
     const tiposDias = tipos.filter(t => t.unidad === "dias");
     const tiposOtros = tipos.filter(t => !["dias", "registro"].includes(t.unidad) && !["llegada_tarde", "horas_extra"].includes(t.clave));
+    // Registros que van en su propia columna (con el nombre de la novedad): cada fecha con su observación
+    const tiposRegistro = tipos.filter(t => REGISTROS_EN_PLANILLA.includes(t.clave));
+    const enColumna = new Set(tiposRegistro.map(t => t.clave));
+    const sinSaltos = s => String(s || "").replace(/\s*[\r\n]+\s*/g, " ").trim();
     const encabezado = ["Apellido y nombre", "DNI", "CUIL", "Sucursal", "Puesto", "Llegadas tarde (cant.)", "Llegadas tarde (min)",
       "Horas extra trabajadas en el mes 50% (h)", "Horas extra trabajadas en el mes 100% (h)", ...tiposDias.map(t => `${t.nombre} (días)`),
       ...tiposOtros.map(t => `${t.nombre} (${t.unidad === "pesos" ? "$" : t.unidad})`),
+      ...tiposRegistro.map(t => t.nombre),
       `Horas extra liquidadas en el sueldo de ${mesTexto(mes)} 50% (h)`, `Horas extra liquidadas en el sueldo de ${mesTexto(mes)} 100% (h)`,
       "Horas extra pendientes de liquidar 50% (h, todas las fechas)", "Horas extra pendientes de liquidar 100% (h, todas las fechas)",
       `Descontado en el sueldo de ${mesTexto(mes)} — adelantos ($)`, `Descontado en el sueldo de ${mesTexto(mes)} — compras en cuenta corriente ($)`,
@@ -382,11 +418,15 @@
         const montoDe = (l, clave) => l.filter(n => n.empleado_id === e.id && n.tipo === clave).reduce((a, n) => a + Number(n.cantidad || 0), 0);
         const horasDe = (l, rec) => R.calc.sumarHoras(l.filter(n => n.empleado_id === e.id && Number(n.recargo) === rec));
         const r = resumen.get(e.id) || { tardanzas: 0, minutosTarde: 0, horasExtra50: 0, horasExtra100: 0, dias: {}, otros: {} };
-        const obs = lista.filter(n => n.empleado_id === e.id && n.observacion).map(n => `${app().tipo(n.tipo).nombre} ${R.util.fmtCorta(n.fecha_desde)}: ${n.observacion}`).join(" | ");
+        const obs = lista.filter(n => n.empleado_id === e.id && n.observacion && !enColumna.has(n.tipo)).map(n => `${app().tipo(n.tipo).nombre} ${R.util.fmtCorta(n.fecha_desde)}: ${sinSaltos(n.observacion)}`).join(" | ");
+        // "Trabajó un feriado": cada fecha con la observación que la completa, ej. "10/11/2026: cubrió el local | 25/12/2026"
+        const registros = tiposRegistro.map(t => lista.filter(n => n.empleado_id === e.id && n.tipo === t.clave)
+          .sort((a, b) => a.fecha_desde.localeCompare(b.fecha_desde))
+          .map(n => fmtFecha(n.fecha_desde) + (n.observacion ? ": " + sinSaltos(n.observacion) : "")).join(" | "));
         const num = n => String(Math.round((n || 0) * 100) / 100).replace(".", ",");
         return [nombreEmpleado(e), e.dni, e.cuil, app().sucursalNombre(e.sucursal_id), e.puesto, r.tardanzas, r.minutosTarde,
           num(r.horasExtra50), num(r.horasExtra100), ...tiposDias.map(t => r.dias[t.clave] || 0),
-          ...tiposOtros.map(t => num(r.otros[t.clave])), num(horasDe(liquidadas, 50)), num(horasDe(liquidadas, 100)),
+          ...tiposOtros.map(t => num(r.otros[t.clave])), ...registros, num(horasDe(liquidadas, 50)), num(horasDe(liquidadas, 100)),
           num(horasDe(pendientes, 50)), num(horasDe(pendientes, 100)),
           num(montoDe(descMes, "adelanto")), num(montoDe(descMes, "compra_cuenta_corriente")), num(montoDe(descPend, "adelanto")), num(montoDe(descPend, "compra_cuenta_corriente")),
           num(saldoHoras), obs];
