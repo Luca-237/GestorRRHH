@@ -1,5 +1,5 @@
 # Configuración mínima para la CLI de Supabase (solo si se despliega con la CLI).
-# La función exige un usuario logueado: el gateway de Supabase valida el token
-# antes de que llegue al código, y el código verifica además que sea admin.
+# verify_jwt apagado: el gateway no conoce los tokens de la cuenta Cindy (Clerk).
+# La función igual exige sesión (mi_perfil() con el token) y solo atiende a un admin activo.
 [functions.admin-usuarios]
-verify_jwt = true
+verify_jwt = false

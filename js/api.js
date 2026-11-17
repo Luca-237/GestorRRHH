@@ -11,7 +11,11 @@
     "anio_vacaciones", "con_certificado", "observacion", "hora", "liquidado_en", "banco", "banco_usado", "compensado", "oculto_calendario"];
   // Solo se envía (y solo cuando es true) al cargar vacaciones como excepción en un período sin vacaciones
   const CAMPOS_NOVEDAD_ESCRITURA = [...CAMPOS_NOVEDAD, "excepcion_bloqueo"];
-  let sb = null;
+  // Dos conexiones a la misma base, una por tipo de login:
+  //   sbPropio -> usuario y contraseña de RRHH (Auth de Supabase)
+  //   sbClerk  -> cuenta Cindy (token de Clerk; ahí supabase.auth no se usa)
+  let sbPropio = null, sbClerk = null, sb = null;
+  let via = null; // "clerk" | "propio" | null
 
   function configurado() {
     const c = window.RRHH_CONFIG || {};
@@ -23,16 +27,22 @@
       throw new Error("No se pudo cargar la librería de Supabase. Revisá la conexión a internet.");
     }
     const c = window.RRHH_CONFIG;
-    sb = window.supabase.createClient(c.supabaseUrl.replace(/\/+$/, ""), c.supabaseKey, {
+    const url = c.supabaseUrl.replace(/\/+$/, "");
+    sbPropio = window.supabase.createClient(url, c.supabaseKey, {
       auth: { persistSession: true, autoRefreshToken: true, storageKey: "rrhh.sesion" },
     });
+    sbClerk = window.supabase.createClient(url, c.supabaseKey, { accessToken: () => window.CuentaCindy.token() });
+    sb = sbPropio;
   }
+
+  function usar(v) { via = v; sb = v === "clerk" ? sbClerk : sbPropio; }
 
   // Errores de Supabase -> mensajes para el usuario
   function mensaje(error) {
     const m = (error && (error.message || error.error_description)) || String(error);
     if (/Invalid login credentials/i.test(m)) return "Usuario o contraseña incorrectos.";
     if (/banned/i.test(m)) return "Tu usuario está desactivado. Hablá con un admin.";
+    if (/No suitable key|wrong key type/i.test(m)) return "La base de RRHH todavía no acepta la cuenta Cindy. Entrá con tu usuario de RRHH.";
     if (/Email not confirmed/i.test(m)) return "El usuario todavía no está confirmado.";
     if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return "No hay conexión con la base de datos. Revisá internet.";
     if (/row-level security|permission denied/i.test(m)) return "No tenés permiso para hacer esto.";
@@ -81,16 +91,44 @@
 
   // ---------- Sesión ----------
   const auth = {
+    via: () => via,
+    // Login propio. usuario: "antonella" o un email completo
     async ingresar(usuario, password) {
-      chequear(await sb.auth.signInWithPassword({ email: R.util.aEmail(usuario), password }));
+      chequear(await sbPropio.auth.signInWithPassword({ email: R.util.aEmail(usuario), password }));
+      usar("propio");
     },
-    async salir() { await sb.auth.signOut(); },
-    async sesion() { const { data } = await sb.auth.getSession(); return data.session; },
-    alCambiar(cb) { sb.auth.onAuthStateChange((evento, sesion) => cb(evento, sesion)); },
+    // Cierra la sesión de esta página. La cuenta Cindy se cierra solo si se pide,
+    // porque es la misma sesión en todas las apps.
+    async salir({ cuentaCindy = false } = {}) {
+      await sbPropio.auth.signOut();
+      if (cuentaCindy) await window.CuentaCindy.salir();
+      usar(null);
+    },
+    // ¿Hay sesión? Prefiere la cuenta Cindy, salvo que se pida ignorarla.
+    async sesion({ ignorarClerk = false } = {}) {
+      if (!ignorarClerk && window.CuentaCindy.conSesion()) { usar("clerk"); return true; }
+      const { data } = await sbPropio.auth.getSession();
+      if (data.session) { usar("propio"); return true; }
+      usar(null);
+      return false;
+    },
+    alCambiar(cb) { sbPropio.auth.onAuthStateChange((evento, sesion) => cb(evento, sesion)); },
+    // Perfil de RRHH. Con cuenta Cindy, la primera vez la vincula o la crea (migración cuenta_cindy).
     async miPerfil() {
-      const s = await auth.sesion();
-      if (!s) return null;
-      return chequear(await sb.from("perfiles").select("id, email, nombre, rol, sucursal_id, activo").eq("id", s.user.id).maybeSingle());
+      if (!via) return null;
+      const r = await sb.rpc("mi_perfil");
+      // Base todavía sin la migración cuenta_cindy: el login propio sigue como antes
+      if (r.error && r.error.code === "PGRST202" && via === "propio") {
+        const { data } = await sbPropio.auth.getSession();
+        const p = chequear(await sb.from("perfiles").select("id, email, nombre, rol, sucursal_id, activo").eq("id", data.session.user.id).maybeSingle());
+        return p && { ...p, via: "propio", tiene_login_propio: true };
+      }
+      const filas = chequear(r);
+      const p = (filas && filas[0]) || null;
+      if (!p) return null;
+      // La sucursal no viene en mi_perfil(): se lee del propio perfil
+      const extra = chequear(await sb.from("perfiles").select("sucursal_id").eq("id", p.id).maybeSingle());
+      return { ...p, sucursal_id: extra ? extra.sucursal_id : null };
     },
   };
 
@@ -233,6 +271,8 @@
     activar: id => usuarios.llamar("activar", { id }),
     desactivar: id => usuarios.llamar("desactivar", { id }),
     resetearPassword: (id, password) => usuarios.llamar("resetear_password", { id, password }),
+    desvincularClerk: id => usuarios.llamar("desvincular_clerk", { id }),
+    unir: (origen, destino) => usuarios.llamar("unir_cuentas", { origen, destino }),
   };
 
   // Backup diario: lo hace un script en la PC; acá solo se lee cómo salió (solo admin)

@@ -99,17 +99,22 @@
     A.mostrar("pantalla-carga");
     let perfil;
     try { perfil = await R.api.auth.miPerfil(); }
-    catch (e) { A.mostrar("pantalla-login"); return A.errorLogin(e.message); }
+    catch (e) { A.mostrarCindy(); A.mostrar("pantalla-login"); return A.errorLogin(e.message); }
 
-    if (!perfil || !perfil.activo) {
-      await R.api.auth.salir();
+    const cindy = R.api.auth.via && R.api.auth.via() === "clerk";
+    const problema = !perfil || !perfil.activo ? "habilitado"
+      : (perfil.rol === "encargado" && !perfil.sucursal_id ? "sucursal" : null);
+    if (problema) {
+      // Cuenta Cindy sin habilitar acá pero con sesión del login propio: usar esa
+      if (cindy && await R.api.auth.sesion({ ignorarClerk: true })) return entrar();
+      // La cuenta Cindy no se cierra: le sirve en las otras apps
+      if (!cindy) await R.api.auth.salir();
+      A.mostrarCindy();
       A.mostrar("pantalla-login");
-      return A.errorLogin("Tu usuario no está habilitado. Hablá con un admin.");
-    }
-    if (perfil.rol === "encargado" && !perfil.sucursal_id) {
-      await R.api.auth.salir();
-      A.mostrar("pantalla-login");
-      return A.errorLogin("Tu usuario no tiene sucursal asignada. Hablá con un admin.");
+      if (problema === "sucursal") return A.errorLogin("Tu usuario no tiene sucursal asignada. Hablá con un admin.");
+      return A.errorLogin(cindy
+        ? "Tu cuenta Cindy todavía no está habilitada en RRHH. Pedile a un admin que la active y le asigne sucursal, o entrá con tu usuario de RRHH."
+        : "Tu usuario no está habilitado. Hablá con un admin.");
     }
     R.estado.perfil = perfil;
     A.mostrarUsuario(perfil);
@@ -135,6 +140,10 @@
     ir();
   }
 
+  async function entrarConCindy() {
+    if (await R.api.auth.sesion()) await entrar();
+  }
+
   function salir() {
     R.estado = estadoInicial();
     vistaActual = null;
@@ -151,7 +160,7 @@
 
     R.util.iniciarDialogos();
     R.util.iniciarAyudas();
-    A.iniciar({ alIngresar: entrar, alSalir: salir });
+    A.iniciar({ alIngresar: entrar, alIngresarCindy: entrarConCindy, alSalir: salir });
     Object.values(VISTAS).forEach(v => v().iniciar());
     R.vistaFicha.iniciar();
 
@@ -195,9 +204,20 @@
     // "Cargar novedad" está en varias secciones
     document.querySelectorAll("[data-nueva-novedad]").forEach(b => b.addEventListener("click", () => R.vistaNovedades.abrirFormulario()));
 
+    // Cuenta Cindy: si no está configurada o no carga, sigue solo el login propio
+    if (window.CuentaCindy) await window.CuentaCindy.cargar((window.RRHH_CONFIG || {}).clerkPublishableKey);
+    A.mostrarCindy();
+
     // Si la sesión se cierra o vence (en esta pestaña o en otra), volver al login
     R.api.auth.alCambiar(evento => {
-      if (evento === "SIGNED_OUT") { salir(); A.mostrar("pantalla-login"); }
+      if (evento === "SIGNED_OUT" && (!R.api.auth.via || R.api.auth.via() !== "clerk")) { salir(); A.mostrar("pantalla-login"); }
+    });
+    if (window.CuentaCindy) window.CuentaCindy.alCambiar(({ session }) => {
+      A.mostrarCindy();
+      if (R.api.auth.via && R.api.auth.via() === "clerk" && !session && R.estado.perfil) { // se cerró desde otra app
+        salir();
+        A.mostrar("pantalla-login");
+      }
     });
 
     if (await R.api.auth.sesion()) await entrar();

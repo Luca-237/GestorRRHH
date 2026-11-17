@@ -122,6 +122,7 @@
     auth: {
       ingresar: async () => { logueado = true; },
       salir: async () => { logueado = false; },
+      via: () => (logueado ? "propio" : null),
       sesion: async () => (logueado ? { user: { id: perfil.id } } : null),
       alCambiar() {},
       miPerfil: async () => espera(perfil),
@@ -310,6 +311,8 @@
       activar: async id => { usuarios.find(u => u.id === id).activo = true; },
       desactivar: async id => { usuarios.find(u => u.id === id).activo = false; },
       resetearPassword: async () => {},
+      desvincularClerk: async id => { usuarios.find(u => u.id === id).cuenta_cindy = false; },
+      unir: async () => {},
     },
   };
   console.info("Gestor de RRHH: modo DEMO con datos inventados (" + (comoEncargado ? "encargado de Central" : "admin") + ").");

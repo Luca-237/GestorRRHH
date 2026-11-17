@@ -11,4 +11,7 @@ window.RRHH_CONFIG = {
   dominioUsuarios: "rrhh.cindymayorista.com.ar",
   // Nombre con el que quedó publicada la Edge Function de usuarios
   funcionUsuarios: "admin-usuarios",
+  // Cuenta Cindy (Clerk). Clave publicable (pk_live_... o pk_test_...), no es secreta.
+  // Vacía = solo el login propio de RRHH.
+  clerkPublishableKey: "pk_test_bmljZS1hcmFjaG5pZC04ODY0LmNsZXJrLmFjY291bnRzLmRldiQ",
 };

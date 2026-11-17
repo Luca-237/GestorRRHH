@@ -19,7 +19,8 @@
   function pintarUsuarios() {
     $("tabla-usuarios").innerHTML = usuarios.map(u => `
       <tr class="${u.activo ? "" : "inactivo"}" data-id="${esc(u.id)}">
-        <td>${esc(u.nombre || "(sin nombre)")}${u.soy_yo ? " <small>(vos)</small>" : ""}<small>Usuario: ${esc(aUsuario(u.email))}</small></td>
+        <td>${esc(u.nombre || "(sin nombre)")}${u.soy_yo ? " <small>(vos)</small>" : ""}<small>Usuario: ${esc(aUsuario(u.email))}</small>
+          <small>${u.login_propio !== false ? `<span class="chip-login">Usuario de RRHH</span>` : ""}${u.cuenta_cindy ? `<span class="chip-login">Cuenta Cindy</span>` : ""}</small></td>
         <td>
           <select data-accion="rol" ${u.soy_yo ? "disabled title=\"No podés cambiar tu propio rol\"" : ""}>
             <option value="encargado" ${u.rol === "encargado" ? "selected" : ""}>Encargado</option>
@@ -29,7 +30,9 @@
         </td>
         <td>${u.activo ? "Activo" : "Desactivado"}<small>Último ingreso: ${fechaHora(u.ultimo_ingreso)}</small></td>
         <td><div class="acciones-fila">
-          <button type="button" class="link" data-accion="password">Nueva contraseña</button>
+          ${u.login_propio !== false ? `<button type="button" class="link" data-accion="password">Nueva contraseña</button>` : ""}
+          ${u.cuenta_cindy && u.login_propio ? `<button type="button" class="link" data-accion="desvincular">Desvincular cuenta Cindy</button>` : ""}
+          ${u.cuenta_cindy && u.login_propio === false ? `<button type="button" class="link" data-accion="unir">Unir con usuario de RRHH</button>` : ""}
           ${u.soy_yo ? "" : `<button type="button" class="link" data-accion="${u.activo ? "desactivar" : "activar"}">${u.activo ? "Desactivar" : "Activar"}</button>`}
         </div></td>
       </tr>`).join("") || `<tr><td colspan="4">No hay usuarios.</td></tr>`;
@@ -201,6 +204,16 @@
       } else if (accion === "password") {
         const p = await R.util.pedir(`Nueva contraseña para ${aUsuario(u.email)}`, "", { etiqueta: "Contraseña nueva", min: 8, ayuda: "Mínimo 8 caracteres. Pasásela por un medio privado." });
         if (p) ejecutar(R.api.usuarios.resetearPassword(id, p), "Contraseña cambiada. Pasala por un medio privado.");
+      } else if (accion === "desvincular" && await R.util.confirmar(`¿Desvincular la cuenta Cindy de ${u.nombre || u.email}? Va a seguir entrando con su usuario de RRHH.`, { aceptar: "Desvincular" })) {
+        ejecutar(R.api.usuarios.desvincularClerk(id), "Cuenta Cindy desvinculada.");
+      } else if (accion === "unir") {
+        const destino = ((await R.util.pedir(`¿Con qué usuario de RRHH se une la cuenta Cindy de ${u.nombre || u.email}?`, "", { etiqueta: "Usuario de RRHH", ayuda: "Ej: antonella. Pasa su rol, sucursal y estado; el registro suelto de la cuenta Cindy se borra." })) || "").trim().toLowerCase();
+        if (!destino) return;
+        const d = usuarios.find(x => x.login_propio !== false && !x.cuenta_cindy && aUsuario(x.email) === destino);
+        if (!d) return toast(`No hay un usuario de RRHH "${destino}" sin cuenta Cindy.`, "error", 6000);
+        if (await R.util.confirmar(`La cuenta Cindy de ${u.nombre || u.email} pasa a "${destino}". ¿Continuar?`, { aceptar: "Unir" })) {
+          ejecutar(R.api.usuarios.unir(id, d.id), "Cuentas unidas.");
+        }
       }
     });
 
