@@ -8,6 +8,8 @@
   let lista = [];      // novedades del mes mostradas
   let editando = null; // novedad que se está editando
   let modoInterno = false; // el formulario carga horas de movimiento interno (permisos, devoluciones, banco), no una novedad para liquidar
+  // Pedido de horas o de días: suma a la deuda de la cuenta de horas (se carga también desde Cargar novedad)
+  const esPedido = t => Number(t.cuenta_horas) > 0;
   const tipoInterno = t => Number(t.cuenta_horas) !== 0 || t.clave === "banco_uso";
 
   const cantidadTexto = n => R.calc.cantidadTexto(n, app().tipo(n.tipo));
@@ -54,14 +56,15 @@
   // ---------- Formulario ----------
   // Tipos agrupados para encontrarlos rápido (los que agrega un admin van en "Otros")
   const GRUPOS_TIPOS = [
-    ["Ausencias", ["vacaciones", "franco", "licencia_medica", "licencia_accidente", "licencia_especial", "falta", "dia_a_devolver"]],
-    ["Horario", ["llegada_tarde", "horas_extra", "trabajo_feriado", "permiso_horas", "devolucion_horas"]],
+    ["Ausencias", ["vacaciones", "franco", "licencia_medica", "licencia_accidente", "licencia_especial", "falta"]],
+    ["Pedidos a devolver (cuenta de horas)", ["permiso_horas", "dia_a_devolver"]],
+    ["Horario", ["llegada_tarde", "horas_extra", "trabajo_feriado", "devolucion_horas"]],
     ["Montos", ["adelanto", "compra_cuenta_corriente", "viatico"]],
     ["Registros", ["cambio_obra_social", "alta", "baja"]],
   ];
   function opcionesTipos(actual) {
     // Las novedades son lo que se liquida; las horas de movimiento interno se cargan desde la ficha / Cuenta de horas
-    const disponibles = R.estado.tipos.filter(t => t.clave === actual || (t.activo && (modoInterno ? (tipoInterno(t) && t.clave !== "banco_uso") || t.clave === "horas_extra" : !tipoInterno(t))));
+    const disponibles = R.estado.tipos.filter(t => t.clave === actual || (t.activo && (modoInterno ? (tipoInterno(t) && t.clave !== "banco_uso") || t.clave === "horas_extra" : !tipoInterno(t) || esPedido(t))));
     const usados = new Set(GRUPOS_TIPOS.flatMap(g => g[1]));
     const op = t => `<option value="${esc(t.clave)}">${esc(modoInterno && t.clave === "horas_extra" ? "Cargar horas a la billetera (horas a favor)" : t.nombre)}</option>`;
     const grupos = GRUPOS_TIPOS.map(([nombre, claves]) => [nombre, claves.map(c => disponibles.find(t => t.clave === c)).filter(Boolean)]);
@@ -353,6 +356,7 @@
       if (falta) toast(`Novedad cargada. ${falta.observacion}: se registró una falta injustificada el ${fmtFecha(falta.fecha_desde)}.`, "error", 8000);
       else if (d.banco) toast(lote.length > 1 ? `Se cargaron ${lote.length} días a la billetera de horas.` : "Cargado a la billetera de horas: quedan como horas a favor.");
       else if (lote.length > 1) toast(`Se cargaron ${lote.length} días${compensa ? " como devolución de horas" : ""}.`);
+      else if (!editando && esPedido(t)) toast(`Pedido cargado: quedó como deuda en la cuenta de horas${creada ? " (" + R.calc.fmtHoras(R.calc.horasDeNovedad(creada, t, app().empleado(creada.empleado_id))) + ")" : ""} y se ve en el calendario. No figura en Novedades porque no se liquida: está en la ficha y en Cuenta de horas.`, "ok", 7000);
       else toast(compensa ? "Guardado como devolución de horas: se descontó de su cuenta de horas." : editando ? "Novedad actualizada." : "Novedad cargada.");
       app().refrescar();
       R.vistaFicha.refrescarSiAbierta();

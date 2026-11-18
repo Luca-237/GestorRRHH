@@ -46,7 +46,7 @@
 
     const tipos = R.estado.tipos;
     // En el calendario van las ausencias y los tipos marcados "En calendario" (ej. Trabajó un feriado)
-    const ausencia = new Set(tipos.filter(t => t.es_ausencia || t.en_calendario).map(t => t.clave));
+    const ausencia = new Set(tipos.filter(t => t.es_ausencia || t.en_calendario || Number(t.cuenta_horas) > 0).map(t => t.clave));
     const vacacion = new Set(tipos.filter(t => t.descuenta_vacaciones).map(t => t.clave));
     const verAus = $("cal-ver-ausencias").checked, verEv = $("cal-ver-eventos").checked, verOc = $("cal-ver-ocultos").checked;
     novCal = novedades;
@@ -82,6 +82,8 @@
 
     // Cada evento y cada ausencia es una pieza: un rectángulo de color que se estira por los días que dura
     const rango = (a, b) => a === b ? fmtFecha(a) : fmtCorta(a) + " al " + fmtCorta(b);
+    // En la barra, el nombre del tipo sin la aclaración entre paréntesis: "Permiso de horas (a devolver)" -> "Permiso de horas"
+    const corto = t => t.nombre.replace(/\s*\([^)]*\)\s*$/, "") || t.nombre;
     const piezas = [
       ...(verEv ? evVisibles.map(e => ({
         desde: e.fecha_desde, hasta: e.fecha_hasta, color: e.color, orden: 0, texto: e.titulo, dato: `data-evento="${e.id}"`, oculto: !!e.oculto_calendario,
@@ -90,7 +92,7 @@
       ...(verAus ? ausencias.map(n => {
         const emp = app().empleado(n.empleado_id), t = app().tipo(n.tipo), dura = n.fecha_hasta !== n.fecha_desde;
         const quien = emp ? `${emp.apellido}${emp.nombre ? " " + emp.nombre[0] + "." : ""}` : "?";
-        return { desde: n.fecha_desde, hasta: n.fecha_hasta, color: t.color, orden: 1, texto: dura || t.unidad === "registro" ? `${quien} · ${t.nombre}` : t.unidad !== "dias" ? `${quien} · ${t.nombre} ${R.calc.cantidadTexto(n, t)}` : quien, dato: `data-novedad="${n.id}"`, oculto: !!n.oculto_calendario,
+        return { desde: n.fecha_desde, hasta: n.fecha_hasta, color: t.color, orden: 1, texto: dura || t.unidad === "registro" || Number(t.cuenta_horas) > 0 && t.unidad === "dias" ? `${quien} · ${corto(t)}` : t.unidad !== "dias" ? `${quien} · ${corto(t)} ${R.calc.cantidadTexto(n, t)}` : quien, dato: `data-novedad="${n.id}"`, oculto: !!n.oculto_calendario,
           ayuda: `${nombreEmpleado(emp)} · ${t.nombre} · ${rango(n.fecha_desde, n.fecha_hasta)}${emp ? " · " + app().sucursalNombre(emp.sucursal_id) : ""}${n.observacion ? " — " + n.observacion : ""}${n.oculto_calendario ? " (oculta)" : ""}` };
       }) : []),
     ].sort((a, b) => a.desde.localeCompare(b.desde) || b.hasta.localeCompare(a.hasta) || a.orden - b.orden || a.texto.localeCompare(b.texto));
