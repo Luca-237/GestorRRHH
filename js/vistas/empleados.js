@@ -66,6 +66,8 @@
     $("em-email").value = v.email || "";
     $("em-direccion").value = v.direccion || "";
     $("em-obra").value = v.obra_social || "";
+    $("em-grupo").value = v.grupo_sanguineo || "";
+    $("em-salud").value = v.salud || "";
     $("em-banco").value = v.banco || "";
     $("em-ce-nombre").value = v.contacto_emergencia_nombre || "";
     $("em-ce-tel").value = v.contacto_emergencia_tel || "";
@@ -95,7 +97,7 @@
       legajo: $("em-legajo").value.toUpperCase(), sector: $("em-sector").value, hora_entrada: $("em-entrada").value,
       codigo_cliente: $("em-codigo").value.replace(/\D/g, ""), 
       fecha_nacimiento: $("em-nacimiento").value, email: $("em-email").value, direccion: $("em-direccion").value,
-      obra_social: $("em-obra").value, banco: $("em-banco").value,
+      obra_social: $("em-obra").value, banco: $("em-banco").value, grupo_sanguineo: $("em-grupo").value, salud: $("em-salud").value.trim(),
       contacto_emergencia_nombre: $("em-ce-nombre").value, contacto_emergencia_tel: $("em-ce-tel").value,
       motivo_baja: $("em-activo").checked ? "" : $("em-motivo").value,
     };

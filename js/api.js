@@ -6,7 +6,7 @@
 (function (R) {
   const CAMPOS_EMPLEADO = ["apellido", "nombre", "legajo", "dni", "cuil", "sucursal_id", "puesto", "sector", "jornada_horas", "hora_entrada", "codigo_cliente",
     "fecha_ingreso", "fecha_egreso", "activo", "motivo_baja", "telefono", "email", "fecha_nacimiento", "direccion", "obra_social", "banco",
-    "contacto_emergencia_nombre", "contacto_emergencia_tel", "notas"];
+    "contacto_emergencia_nombre", "contacto_emergencia_tel", "notas", "grupo_sanguineo", "salud"];
   const CAMPOS_NOVEDAD = ["empleado_id", "tipo", "fecha_desde", "fecha_hasta", "cantidad", "recargo",
     "anio_vacaciones", "con_certificado", "observacion", "hora", "liquidado_en", "banco", "banco_usado", "compensado", "oculto_calendario"];
   // Solo se envía (y solo cuando es true) al cargar vacaciones como excepción en un período sin vacaciones

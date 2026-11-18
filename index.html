@@ -9,9 +9,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23e84e1b'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/app.css?v=20261118.2">
+<link rel="stylesheet" href="css/app.css?v=20261118.3">
 <!-- El color de fondo elegido se aplica después de la hoja de estilos (para pisarla) y antes de dibujar, así no parpadea -->
-<script src="js/color.js?v=20261118.2"></script>
+<script src="js/color.js?v=20261118.3"></script>
 <script>try { ColorFondo.aplicar(ColorFondo.leer()); } catch (e) {}</script>
 </head>
 <body>
@@ -486,6 +486,8 @@
         <div><label for="em-email">Email</label><input id="em-email" type="email"></div>
         <div><label for="em-direccion">Dirección</label><input id="em-direccion"></div>
         <div><label for="em-obra">Obra social</label><input id="em-obra" list="lista-obras"></div>
+        <div><label for="em-grupo">Grupo sanguíneo</label><select id="em-grupo"><option value="">Sin dato</option><option>0+</option><option>0-</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option></select></div>
+        <div class="full"><label for="em-salud">Alergias, antecedentes y medicación<span class="info" tabindex="0" role="img" aria-label="Para emergencias y la ART. Dato de salud: solo lo ven quienes ven al empleado." data-info="Para emergencias y la ART. Dato de salud: solo lo ven quienes ven al empleado."></span></label><input id="em-salud" placeholder="ej: Sin alergias. Medicación: ..."></div>
         <div><label for="em-banco">Banco<span class="info" tabindex="0" role="img" aria-label="Banco donde cobra el sueldo." data-info="Banco donde cobra el sueldo."></span></label><input id="em-banco" list="lista-bancos"></div>
         <div class="full"><h2 style="margin:14px 0 0">Contacto de emergencia</h2></div>
         <div><label for="em-ce-nombre">Nombre y vínculo</label><input id="em-ce-nombre" placeholder="ej: Miriam, madre"></div>
@@ -722,28 +724,28 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <!-- Configuración. Los ?v= obligan al navegador a bajar la versión nueva:
      al cambiar cualquier CSS/JS, subir el número en TODAS las líneas. -->
-<script src="js/config.js?v=20261118.2"></script>
+<script src="js/config.js?v=20261118.3"></script>
 <!-- Lógica (sin pantalla) -->
-<script src="js/utils.js?v=20261118.2"></script>
-<script src="js/calculos.js?v=20261118.2"></script>
-<script src="js/cuenta-cindy.js?v=20261118.2"></script>
-<script src="js/api.js?v=20261118.2"></script>
+<script src="js/utils.js?v=20261118.3"></script>
+<script src="js/calculos.js?v=20261118.3"></script>
+<script src="js/cuenta-cindy.js?v=20261118.3"></script>
+<script src="js/api.js?v=20261118.3"></script>
 <!-- Vistas (pantalla) -->
-<script src="js/vistas/acceso.js?v=20261118.2"></script>
-<script src="js/vistas/ficha.js?v=20261118.2"></script>
-<script src="js/vistas/tablero.js?v=20261118.2"></script>
-<script src="js/vistas/empleados.js?v=20261118.2"></script>
-<script src="js/vistas/novedades.js?v=20261118.2"></script>
-<script src="js/vistas/vacaciones.js?v=20261118.2"></script>
-<script src="js/vistas/banco.js?v=20261118.2"></script>
-<script src="js/vistas/horas.js?v=20261118.2"></script>
-<script src="js/vistas/horas-extra.js?v=20261118.2"></script>
-<script src="js/vistas/importar-cc.js?v=20261118.2"></script>
-<script src="js/vistas/descuentos.js?v=20261118.2"></script>
-<script src="js/vistas/calendario.js?v=20261118.2"></script>
-<script src="js/vistas/compartidos.js?v=20261118.2"></script>
-<script src="js/vistas/configuracion.js?v=20261118.2"></script>
+<script src="js/vistas/acceso.js?v=20261118.3"></script>
+<script src="js/vistas/ficha.js?v=20261118.3"></script>
+<script src="js/vistas/tablero.js?v=20261118.3"></script>
+<script src="js/vistas/empleados.js?v=20261118.3"></script>
+<script src="js/vistas/novedades.js?v=20261118.3"></script>
+<script src="js/vistas/vacaciones.js?v=20261118.3"></script>
+<script src="js/vistas/banco.js?v=20261118.3"></script>
+<script src="js/vistas/horas.js?v=20261118.3"></script>
+<script src="js/vistas/horas-extra.js?v=20261118.3"></script>
+<script src="js/vistas/importar-cc.js?v=20261118.3"></script>
+<script src="js/vistas/descuentos.js?v=20261118.3"></script>
+<script src="js/vistas/calendario.js?v=20261118.3"></script>
+<script src="js/vistas/compartidos.js?v=20261118.3"></script>
+<script src="js/vistas/configuracion.js?v=20261118.3"></script>
 <!-- Arranque -->
-<script src="js/main.js?v=20261118.2"></script>
+<script src="js/main.js?v=20261118.3"></script>
 </body>
 </html>

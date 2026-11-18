@@ -103,6 +103,8 @@
         ${dato("Email", e.email)}
         ${dato("Dirección", e.direccion)}
         ${dato("Obra social", e.obra_social)}
+        ${dato("Grupo sanguíneo", e.grupo_sanguineo)}
+        ${dato("Salud", e.salud, "Alergias, antecedentes y medicación, para emergencias y la ART.")}
         ${dato("Banco", e.banco)}
         ${dato("Emergencia", [e.contacto_emergencia_nombre, e.contacto_emergencia_tel].filter(Boolean).join(" · "), "Contacto en caso de emergencia: nombre (y vínculo) y teléfono.")}
       </dl>
