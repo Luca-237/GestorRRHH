@@ -24,6 +24,7 @@
     ["llegada_tarde", "Llegada tarde", "minutos", false, false, "#c63f12"], ["horas_extra", "Horas extra", "horas", false, false, "#3a3a3a"],
     ["licencia_medica", "Licencia médica", "dias", false, true, "#8a8a8a"], ["falta", "Falta / inasistencia", "dias", false, true, "#b00020"], ["viaje", "Viaje (enviado a otra localidad)", "dias", false, true, "#1f5f8b"],
     ["licencia_especial", "Licencia especial", "dias", false, true, "#5a5a5a"],
+    ["licencia_mudanza", "Licencia por mudanza", "dias", false, true, "#4a7c59"],
     ["permiso_horas", "Permiso de horas (a devolver)", "horas", false, false, "#7a4a2a", 1],
     ["dia_a_devolver", "Día pedido (a devolver)", "dias", false, true, "#a0522d", 1],
     ["devolucion_horas", "Devolución de horas", "horas", false, false, "#2f6b3a", -1],
