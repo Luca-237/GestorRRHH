@@ -8,7 +8,7 @@
     "fecha_ingreso", "fecha_egreso", "activo", "motivo_baja", "telefono", "email", "fecha_nacimiento", "direccion", "obra_social", "banco",
     "contacto_emergencia_nombre", "contacto_emergencia_tel", "notas", "grupo_sanguineo", "salud"];
   const CAMPOS_NOVEDAD = ["empleado_id", "tipo", "fecha_desde", "fecha_hasta", "cantidad", "recargo",
-    "anio_vacaciones", "con_certificado", "observacion", "hora", "liquidado_en", "banco", "banco_usado", "compensado", "oculto_calendario"];
+    "anio_vacaciones", "con_certificado", "observacion", "hora", "liquidado_en", "banco", "banco_usado", "compensado", "oculto_calendario", "obra_social_nueva"];
   // Solo se envía (y solo cuando es true) al cargar vacaciones como excepción en un período sin vacaciones
   const CAMPOS_NOVEDAD_ESCRITURA = [...CAMPOS_NOVEDAD, "excepcion_bloqueo"];
   // Dos conexiones a la misma base, una por tipo de login:
@@ -161,7 +161,7 @@
 
   // ---------- Novedades ----------
   // generada_por solo se lee (la escribe la base: falta por llegadas tarde, o lo que generó un uso de la billetera)
-  const COLS_NOVEDAD = "id, " + CAMPOS_NOVEDAD.join(", ") + ", generada_por, creado_en";
+  const COLS_NOVEDAD = "id, " + CAMPOS_NOVEDAD.join(", ") + ", generada_por, obra_social_anterior, creado_en";
   const novedades = {
     // Las que tocan el rango [desde, hasta] (una vacación que empieza antes también cuenta)
     entre: (desde, hasta) => todo(() => sb.from("novedades").select(COLS_NOVEDAD)

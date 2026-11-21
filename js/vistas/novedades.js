@@ -48,7 +48,7 @@
           <td>${esc(nombreEmpleado(e))}<small>${esc(app().sucursalNombre(e && e.sucursal_id))}</small></td>
           <td>${app().chipTipo(n.tipo)}</td>
           <td class="num">${cantidadTexto(n)}${n.banco ? `<small>en el banco${Number(n.banco_usado) ? " (usó " + R.calc.fmtHoras(n.banco_usado) + ")" : ""}</small>` : ""}${n.hora ? `<small>${n.tipo === "llegada_tarde" ? "llegó" : "desde"} ${n.hora.slice(0, 5)}</small>` : ""}</td>
-          <td>${esc(n.observacion)}${n.tipo === "horas_extra" && !n.banco ? `<small>${n.compensado ? "Compensada (no se liquida)" : n.liquidado_en ? "Liquidada en " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Sin liquidar"}</small>` : ""}${app().tipo(n.tipo).descuenta_sueldo ? `<small>${n.liquidado_en ? "Descontado en el sueldo de " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Pendiente de descontar"}</small>` : ""}${n.generada_por ? `<small>${n.tipo === "falta" ? "Generada sola (llegadas tarde)" : "Salió de la billetera de horas"}</small>` : ""}</td>
+          <td>${esc(n.observacion)}${n.obra_social_nueva ? `<small>Obra social: ${esc(n.obra_social_anterior || "sin obra social")} → ${esc(n.obra_social_nueva)}</small>` : ""}${n.tipo === "horas_extra" && !n.banco ? `<small>${n.compensado ? "Compensada (no se liquida)" : n.liquidado_en ? "Liquidada en " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Sin liquidar"}</small>` : ""}${app().tipo(n.tipo).descuenta_sueldo ? `<small>${n.liquidado_en ? "Descontado en el sueldo de " + esc(mesTexto(n.liquidado_en.slice(0, 7))) : "Pendiente de descontar"}</small>` : ""}${n.generada_por ? `<small>${n.tipo === "falta" ? "Generada sola (llegadas tarde)" : "Salió de la billetera de horas"}</small>` : ""}</td>
         </tr>`;
       }).join("") || `<tr><td colspan="5" class="vacio">No hay novedades en ${mesTexto($("novedades-mes").value)} con este filtro.</td></tr>`}</tbody>`;
   }
@@ -106,6 +106,14 @@
     ajustarHora();
     $("no-vacaciones-wrap").hidden = !t.descuenta_vacaciones;
     $("no-certificado-wrap").hidden = t.clave !== "licencia_medica";
+    // Cambio de obra social: la nueva va a la ficha del empleado (lo hace la base)
+    const esCambioOS = t.clave === "cambio_obra_social";
+    $("no-os-wrap").hidden = !esCambioOS;
+    if (esCambioOS) {
+      const emp = app().empleado(Number($("no-empleado").value) || null);
+      $("lista-obras-nov").innerHTML = [...new Set(R.estado.empleados.map(x => (x.obra_social || "").trim()).filter(Boolean))].sort().map(o => `<option value="${esc(o)}">`).join("");
+      $("no-os-hoy").textContent = emp ? `Hoy en la ficha: ${emp.obra_social || "sin obra social"}${editando && editando.obra_social_anterior !== undefined ? " · antes de este cambio: " + (editando.obra_social_anterior || "sin obra social") : ""}` : "Elegí el empleado.";
+    }
     if (!$("no-hasta").value || $("no-hasta").value < $("no-desde").value) $("no-hasta").value = $("no-desde").value;
     const d = $("no-desde").value, h = $("no-hasta").value;
     $("no-dias").textContent = porDias && d && h && h >= d ? `${diasEntre(d, h)} ${diasEntre(d, h) === 1 ? "día corrido" : "días corridos"}` : "";
@@ -247,6 +255,7 @@
     delete $("no-anio").dataset.manual;
     if (datos.anio_vacaciones) { $("no-anio").value = String(datos.anio_vacaciones); $("no-anio").dataset.manual = "1"; }
     $("no-certificado").checked = datos.con_certificado === true;
+    $("no-os").value = datos.obra_social_nueva || "";
     $("no-observacion").value = datos.observacion || "";
     $("no-eliminar").hidden = !editando;
     $("novedad-error").textContent = "";
@@ -306,6 +315,7 @@
       banco: t.clave === "horas_extra" && $("no-banco").checked && !compensa,
       anio_vacaciones: t.descuenta_vacaciones ? Number($("no-anio").value) : null,
       con_certificado: t.clave === "licencia_medica" ? $("no-certificado").checked : null,
+      obra_social_nueva: t.clave === "cambio_obra_social" ? $("no-os").value.trim() : null,
       observacion: $("no-observacion").value,
     };
     if (!d.empleado_id) return ($("novedad-error").textContent = "Elegí un empleado.");
@@ -318,6 +328,7 @@
     }
     if (t.clave === "llegada_tarde" && !d.hora && !(d.cantidad > 0)) return ($("novedad-error").textContent = "Cargá la hora de llegada (o los minutos).");
     if (d.fecha_hasta < d.fecha_desde) return ($("novedad-error").textContent = "La fecha \"hasta\" no puede ser anterior a \"desde\".");
+    if (t.clave === "cambio_obra_social" && !d.obra_social_nueva) return ($("novedad-error").textContent = "Escribí la nueva obra social.");
     if (!["dias", "registro"].includes(t.unidad) && !(d.cantidad > 0)) return ($("novedad-error").textContent = `Indicá ${{ minutos: "los minutos (o la hora de llegada)", pesos: "el monto", horas: "las horas" }[t.unidad] || "la cantidad"}.`);
 
     // Vacaciones en un período sin vacaciones: se pueden cargar como excepción, pero hay que confirmarlo
@@ -422,7 +433,8 @@
         const montoDe = (l, clave) => l.filter(n => n.empleado_id === e.id && n.tipo === clave).reduce((a, n) => a + Number(n.cantidad || 0), 0);
         const horasDe = (l, rec) => R.calc.sumarHoras(l.filter(n => n.empleado_id === e.id && Number(n.recargo) === rec));
         const r = resumen.get(e.id) || { tardanzas: 0, minutosTarde: 0, horasExtra50: 0, horasExtra100: 0, dias: {}, otros: {} };
-        const obs = lista.filter(n => n.empleado_id === e.id && n.observacion && !enColumna.has(n.tipo)).map(n => `${app().tipo(n.tipo).nombre} ${R.util.fmtCorta(n.fecha_desde)}: ${sinSaltos(n.observacion)}`).join(" | ");
+        const obs = lista.filter(n => n.empleado_id === e.id && (n.observacion || n.obra_social_nueva) && !enColumna.has(n.tipo))
+          .map(n => `${app().tipo(n.tipo).nombre} ${R.util.fmtCorta(n.fecha_desde)}: ${[n.obra_social_nueva ? `nueva obra social ${n.obra_social_nueva} (antes ${n.obra_social_anterior || "sin obra social"})` : "", sinSaltos(n.observacion)].filter(Boolean).join(". ")}`).join(" | ");
         // "Trabajó un feriado": cada fecha con la observación que la completa, ej. "10/11/2026: cubrió el local | 25/12/2026"
         const registros = tiposRegistro.map(t => lista.filter(n => n.empleado_id === e.id && n.tipo === t.clave)
           .sort((a, b) => a.fecha_desde.localeCompare(b.fecha_desde))

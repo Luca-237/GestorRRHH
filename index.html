@@ -9,9 +9,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23e84e1b'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/app.css?v=20261120.1">
+<link rel="stylesheet" href="css/app.css?v=20261121.1">
 <!-- El color de fondo elegido se aplica después de la hoja de estilos (para pisarla) y antes de dibujar, así no parpadea -->
-<script src="js/color.js?v=20261120.1"></script>
+<script src="js/color.js?v=20261121.1"></script>
 <script>try { ColorFondo.aplicar(ColorFondo.leer()); } catch (e) {}</script>
 </head>
 <body>
@@ -549,6 +549,11 @@
       <div id="no-liq-vac-wrap" hidden><label for="no-liq-fecha">Liquidado el<span class="info" tabindex="0" role="img" aria-label="Fecha en que estas vacaciones se liquidaron (nota de vacaciones / pago en el recibo). Dejalo vacío si todavía no. Al cargar una liquidación en Vacaciones, los goces del período se marcan solos." data-info="Fecha en que estas vacaciones se liquidaron (nota de vacaciones / pago en el recibo). Dejalo vacío si todavía no. Al cargar una liquidación en Vacaciones, los goces del período se marcan solos."></span></label><input id="no-liq-fecha" type="date"></div>
       <div id="no-certificado-wrap" hidden><label class="check"><input type="checkbox" id="no-certificado"> Presentó certificado médico</label><span class="info" tabindex="0" role="img" aria-label="Marcarlo cuando el empleado entregó el certificado que justifica la licencia. Queda registrado en su ficha." data-info="Marcarlo cuando el empleado entregó el certificado que justifica la licencia. Queda registrado en su ficha."></span></div>
       <div class="aviso-horas" id="no-horas" hidden></div>
+      <div id="no-os-wrap" hidden>
+        <label for="no-os">Nueva obra social<span class="info" tabindex="0" role="img" aria-label="Al guardar, la ficha del empleado pasa a tener esta obra social. Si después se borra este cambio, vuelve a la que tenía." data-info="Al guardar, la ficha del empleado pasa a tener esta obra social. Si después se borra este cambio, vuelve a la que tenía."></span></label>
+        <input id="no-os" list="lista-obras-nov" autocomplete="off" placeholder="ej: OSECAC"><datalist id="lista-obras-nov"></datalist>
+        <div class="hint" id="no-os-hoy"></div>
+      </div>
       <label for="no-observacion">Observación</label><textarea id="no-observacion" placeholder="Opcional. Sin diagnósticos: solo lo necesario para RRHH."></textarea>
       <div class="mensaje-error" id="novedad-error" role="alert"></div>
       <div class="dlg-pie">
@@ -724,28 +729,28 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <!-- Configuración. Los ?v= obligan al navegador a bajar la versión nueva:
      al cambiar cualquier CSS/JS, subir el número en TODAS las líneas. -->
-<script src="js/config.js?v=20261120.1"></script>
+<script src="js/config.js?v=20261121.1"></script>
 <!-- Lógica (sin pantalla) -->
-<script src="js/utils.js?v=20261120.1"></script>
-<script src="js/calculos.js?v=20261120.1"></script>
-<script src="js/cuenta-cindy.js?v=20261120.1"></script>
-<script src="js/api.js?v=20261120.1"></script>
+<script src="js/utils.js?v=20261121.1"></script>
+<script src="js/calculos.js?v=20261121.1"></script>
+<script src="js/cuenta-cindy.js?v=20261121.1"></script>
+<script src="js/api.js?v=20261121.1"></script>
 <!-- Vistas (pantalla) -->
-<script src="js/vistas/acceso.js?v=20261120.1"></script>
-<script src="js/vistas/ficha.js?v=20261120.1"></script>
-<script src="js/vistas/tablero.js?v=20261120.1"></script>
-<script src="js/vistas/empleados.js?v=20261120.1"></script>
-<script src="js/vistas/novedades.js?v=20261120.1"></script>
-<script src="js/vistas/vacaciones.js?v=20261120.1"></script>
-<script src="js/vistas/banco.js?v=20261120.1"></script>
-<script src="js/vistas/horas.js?v=20261120.1"></script>
-<script src="js/vistas/horas-extra.js?v=20261120.1"></script>
-<script src="js/vistas/importar-cc.js?v=20261120.1"></script>
-<script src="js/vistas/descuentos.js?v=20261120.1"></script>
-<script src="js/vistas/calendario.js?v=20261120.1"></script>
-<script src="js/vistas/compartidos.js?v=20261120.1"></script>
-<script src="js/vistas/configuracion.js?v=20261120.1"></script>
+<script src="js/vistas/acceso.js?v=20261121.1"></script>
+<script src="js/vistas/ficha.js?v=20261121.1"></script>
+<script src="js/vistas/tablero.js?v=20261121.1"></script>
+<script src="js/vistas/empleados.js?v=20261121.1"></script>
+<script src="js/vistas/novedades.js?v=20261121.1"></script>
+<script src="js/vistas/vacaciones.js?v=20261121.1"></script>
+<script src="js/vistas/banco.js?v=20261121.1"></script>
+<script src="js/vistas/horas.js?v=20261121.1"></script>
+<script src="js/vistas/horas-extra.js?v=20261121.1"></script>
+<script src="js/vistas/importar-cc.js?v=20261121.1"></script>
+<script src="js/vistas/descuentos.js?v=20261121.1"></script>
+<script src="js/vistas/calendario.js?v=20261121.1"></script>
+<script src="js/vistas/compartidos.js?v=20261121.1"></script>
+<script src="js/vistas/configuracion.js?v=20261121.1"></script>
 <!-- Arranque -->
-<script src="js/main.js?v=20261120.1"></script>
+<script src="js/main.js?v=20261121.1"></script>
 </body>
 </html>

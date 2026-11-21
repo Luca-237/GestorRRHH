@@ -175,6 +175,10 @@
           }
         }
         const n = completar({ id: nuevoId(), ...d, creado_en: new Date().toISOString() }); novedades.push(n);
+        if (n.tipo === "cambio_obra_social" && n.obra_social_nueva) {
+          const emp = empleados.find(x => x.id === n.empleado_id);
+          if (emp) { n.obra_social_anterior = emp.obra_social || null; emp.obra_social = n.obra_social_nueva; }
+        }
         // Igual que la base: cada 3 llegadas tarde acumuladas, una falta
         if (n.tipo === "llegada_tarde") {
           const total = novedades.filter(x => x.empleado_id === n.empleado_id && x.tipo === "llegada_tarde").length;
